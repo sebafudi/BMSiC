@@ -17,11 +17,17 @@ int displayMenu(char **choices, bool orientation, int yMax, int xMax, unsigned i
 	int totalTextSize = 0;
 	int cursorLocation = 0;
 	int padding;
+	int remaingChar;
+
 	for (int i = 0; i < noOfElements; i++) {
 		totalTextSize += strlen(choices[i]);
 	}
 	padding = (xMax - totalTextSize) / (noOfElements + 1);
+	remaingChar = (xMax - totalTextSize) % (noOfElements + 1);
 	clear();
+	if (remaingChar > 0) {
+		cursorLocation += remaingChar/2;
+	};
 	for (int i = 0; i < noOfElements; i++) {
 		mvprintw(yMax / 2, cursorLocation += padding, "%s", choices[i]);
 		cursorLocation += strlen(choices[i]);
@@ -52,7 +58,7 @@ int main() {
 	printw(text[0]);
 	printw("\n%d\n%d\n", yMax, xMax);
 	refresh();
-	getch();
+	//getch();
 	displayMenu(&text, BMSiC_HORIZONTAL, yMax, xMax, sizeof(text));
 	getch();
 	endwin();
