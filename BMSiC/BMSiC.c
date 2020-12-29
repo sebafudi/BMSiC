@@ -6,34 +6,30 @@
 #include <string.h>
 #include <windows.h>
 
-#define BMSiC_VERTICAL 0
-#define BMSiC_HORIZONTAL 1
-
-int display_horizontal_menu(char** choices, unsigned int size, int yMax,
-                            int xMax) {
+int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
+                          int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int total_text_size = 0;
   int cursor_location = 0;
   int start_location = 0;
+  int choice;
+  int highlight = 0;
   div_t padding;
 
   for (int i = 0; i < number_of_elements; i++) {
     total_text_size += strlen(choices[i]);
   }
-  padding = div((xMax - total_text_size), (number_of_elements + 1));
+  padding = div((x_max - total_text_size), (number_of_elements + 1));
   if (padding.rem > 0) {
     start_location = padding.rem / 2;
   };
 
   clear();
-  int choice;
-  int highlight = 0;
-  keypad(stdscr, 1);
   while (1) {
     cursor_location = start_location;
     for (int i = 0; i < number_of_elements; i++) {
       if (i == highlight) wattron(stdscr, A_REVERSE);
-      mvprintw(yMax / 2, cursor_location += padding.quot, "%s", choices[i]);
+      mvprintw(y_max / 2, cursor_location += padding.quot, "%s", choices[i]);
       wattroff(stdscr, A_REVERSE);
       cursor_location += strlen(choices[i]);
     }
@@ -60,8 +56,46 @@ int display_horizontal_menu(char** choices, unsigned int size, int yMax,
   return 0;
 }
 
+int DisplayVerticalMenu(char** choices, unsigned int size, int y_max, int x_max) {
+  int number_of_elements = size / sizeof(choices[0]);
+  int padding = (y_max - number_of_elements * 2 - 1) / 2 + 1;
+  int cursor_location;
+  int choice;
+  int highlight = 0;
+  clear();
+  while (1) {
+    cursor_location = padding;
+    for (int i = 0; i < number_of_elements; i++) {
+      if (i == highlight) wattron(stdscr, A_REVERSE);
+      mvprintw(cursor_location, 5, "%s", choices[i]);
+      wattroff(stdscr, A_REVERSE);
+      cursor_location += 2;
+    }
+    choice = wgetch(stdscr);
+    switch (choice) {
+      case KEY_UP:
+        highlight--;
+        if (highlight < 0) highlight = 0;
+        break;
+      case KEY_DOWN:
+        highlight++;
+        if (highlight > number_of_elements - 1)
+          highlight = number_of_elements - 1;
+        break;
+      default:
+        break;
+    }
+    if (choice == 10) {
+      clear(stdscr);
+      refresh();
+      return highlight;
+    }
+    refresh();
+  }
+  return 0;
+}
+
 int main() {
-  char* lang[] = {"ENGLISH", "POLSKI"};
   char* text[] = {"LOG IN", "SIGN IN"};
   int y_max, x_max;
   int choice;
@@ -72,9 +106,10 @@ int main() {
   noecho();
   cbreak();
   curs_set(0);
+  keypad(stdscr, 1);
 
   getmaxyx(stdscr, y_max, x_max);
-  y_max = 15;
+  y_max = 21;
   x_max = y_max * 4;
   // wresize(stdscr, yMax, xMax);
   resize_term(y_max, x_max);
@@ -83,7 +118,10 @@ int main() {
   printw("y_max: %d\nx_max: %d\n", y_max, x_max);
   refresh();
   // getch();
-  choice = display_horizontal_menu(&text, sizeof(text), y_max, x_max);
+  choice = DisplayVerticalMenu(&text, sizeof(text), y_max, x_max);
+  printw("You chose: %d (%s)\n", choice, text[choice]);
+  getch();
+  choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
   printw("You chose: %d (%s)\n", choice, text[choice]);
   refresh();
   getch();
