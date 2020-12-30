@@ -4,7 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <windows.h>
+
+struct Account {
+  int account_id;
+  char first_name[64];
+  char last_name[64];
+  time_t date_created;
+  char accout_type;
+};
 
 int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
                           int x_max) {
@@ -56,7 +65,8 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   return 0;
 }
 
-int DisplayVerticalMenu(char** choices, unsigned int size, int y_max, int x_max) {
+int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
+                        int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int padding = (y_max - number_of_elements * 2 - 1) / 2 + 1;
   int cursor_location;
@@ -95,12 +105,37 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max, int x_max)
   return 0;
 }
 
+int InitializeFiles(char* file_name) {
+  FILE* file;
+  fopen_s(&file, file_name, "w");
+  if (file != NULL) {
+    fprintf(file, "BMSiC");
+    fclose(file);
+  }
+  return 0;
+}
+
 int main() {
   char* text[] = {"LOG IN", "SIGN IN"};
   int y_max, x_max;
   int choice;
+  FILE* file;
+  char* file_name = "bmsic_db.txt";
+  errno_t err;
 
   setlocale(LC_CTYPE, "Polish");
+
+  err = fopen_s(&file, file_name, "r");
+  if (err != 0) {
+    printf_s("Detected first run, creating files...\n");
+    if (InitializeFiles(file_name) == 0) {
+      printf_s("Successfully created files!\n");
+    } else {
+      printf_s("Unable to create file. \nProgram will close.");
+      return 1;
+    }
+    system("PAUSE");
+  }
 
   initscr();
   noecho();
@@ -120,11 +155,7 @@ int main() {
   // getch();
   choice = DisplayVerticalMenu(&text, sizeof(text), y_max, x_max);
   printw("You chose: %d (%s)\n", choice, text[choice]);
-  getch();
-  choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
-  printw("You chose: %d (%s)\n", choice, text[choice]);
-  refresh();
-  getch();
+  // getch();
   endwin();
   system("pause");
   return 0;
