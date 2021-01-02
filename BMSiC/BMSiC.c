@@ -115,6 +115,43 @@ int InitializeFiles(char* file_name) {
   return 0;
 }
 
+int CreateAccountMenu() {
+  int current_input = 0;
+  int choice = 0;
+  char* fields[] = {"First Name", "Last Name"};
+  int number_of_elements = sizeof(fields) / sizeof(fields[0]);
+  while (55 != number_of_elements) {
+    clear();
+    for (int i = 0; i < number_of_elements; i++) {
+      if (current_input == i) {
+        mvprintw(i, 0, "> ");
+      } else {
+        mvprintw(i, 0, "  ");
+      }
+      printw("%s: ", fields[i]);
+    }
+    if (current_input < number_of_elements) {
+      mvprintw(current_input, strlen(fields[current_input]) + 4, "");
+      curs_set(1);
+    } else {
+      curs_set(0);
+    }
+    choice = wgetch(stdscr);
+    if (choice >= 97 && choice <= 122 || choice >= 65 && choice <= 90 ||
+        choice == 32) {
+      mvprintw(current_input, strlen(fields[current_input]) + 4, "");
+    }
+    if ((choice == 9 || choice == 258) && current_input < number_of_elements) {
+      current_input++;
+    }
+    if ((choice == 351 || choice == 259) && current_input > 0) {
+      current_input--;
+    }
+    refresh();
+  }
+  return 0;
+}
+
 int main() {
   char* text[] = {"LOG IN", "SIGN IN"};
   int y_max, x_max;
@@ -151,10 +188,12 @@ int main() {
   // resize_window(stdscr, yMax, xMax);
   printw("Hello BMSiC!\n");
   printw("y_max: %d\nx_max: %d\n", y_max, x_max);
+  clear();
   refresh();
+  CreateAccountMenu();
   // getch();
-  choice = DisplayVerticalMenu(&text, sizeof(text), y_max, x_max);
-  printw("You chose: %d (%s)\n", choice, text[choice]);
+  // choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
+  // printw("You chose: %d (%s)\n", choice, text[choice]);
   // getch();
   endwin();
   system("pause");
