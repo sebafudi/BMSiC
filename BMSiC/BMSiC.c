@@ -25,7 +25,7 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   int choice;
   int highlight = 0;
   div_t padding;
-
+  curs_set(0);
   for (size_t i = 0; i < number_of_elements; i++) {
     total_text_size += strlen(choices[i]);
   }
@@ -73,6 +73,7 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
   int cursor_location;
   int choice;
   int highlight = 0;
+  curs_set(0);
   clear();
   while (1) {
     cursor_location = padding;
@@ -97,8 +98,6 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
         break;
     }
     if (choice == 10) {
-      clear(stdscr);
-      refresh();
       return highlight;
     }
     refresh();
@@ -116,19 +115,18 @@ int InitializeFiles(char* file_name) {
   return 0;
 }
 
-int CreateAccountMenu() {
+int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
+              int x_max) {
   int current_input = 0;
   int key_pressed = 0;
-  char* fields[] = {"First Name", "Last Name"};
-  int number_of_elements = sizeof(fields) / sizeof(fields[0]);
-  char** fields_text = calloc(2, sizeof(char*));
-  assert(fields_text);
+  int number_of_elements = size / sizeof(fields[0]);
+  bool exit = 0;
   curs_set(0);
   for (size_t i = 0; i < number_of_elements; i++) {
     fields_text[i] = calloc(51, sizeof(char));
     assert(fields_text[i]);
   }
-  while (55 != number_of_elements) {
+  while (exit == 0) {
     clear();
     for (size_t i = 0; i < number_of_elements; i++) {
       if (current_input == i) {
@@ -170,13 +168,23 @@ int CreateAccountMenu() {
     if ((key_pressed == 351 || key_pressed == 259) && current_input > 0) {
       current_input--;
     }
-  refresh();
-}
-return 0;
+    if (current_input == number_of_elements + 1 && key_pressed == 10) {
+      return 10;
+    }
+    if (key_pressed == 27) {
+      return 27;
+    }
+    refresh();
+  }
+  return 0;
 }
 
 int main() {
   char* text[] = {"LOG IN", "SIGN IN"};
+  char* sign_in_text[] = {"First Name", "Last Name"};
+  char* log_in_text[] = {"Login", "Password"};
+  char** fields_text = calloc(10, sizeof(char*));
+  assert(fields_text);
   int y_max, x_max;
   int choice;
   FILE* file;
@@ -213,11 +221,23 @@ int main() {
   printw("y_max: %d\nx_max: %d\n", y_max, x_max);
   clear();
   refresh();
-  CreateAccountMenu();
+  clear();
+  refresh();
   // getch();
-  // choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
-  // printw("You chose: %d (%s)\n", choice, text[choice]);
-  // getch();
+  do {
+    choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
+    if (choice == 0) {
+      choice = InputMenu(&log_in_text, sizeof(log_in_text), fields_text, y_max,
+                         x_max);
+    } else if (choice == 1) {
+      choice = InputMenu(&sign_in_text, sizeof(sign_in_text), fields_text,
+                         y_max, x_max);
+    }
+  } while (choice != 10);
+  clear();
+  refresh();
+  printw("You chose: %d\n%s\n%s", choice, fields_text[0], fields_text[1]);
+  getch();
   endwin();
   system("pause");
   return 0;
