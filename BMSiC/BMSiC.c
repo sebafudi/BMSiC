@@ -1,4 +1,5 @@
-﻿#include <curses.h>
+﻿#include <assert.h>
+#include <curses.h>
 #include <locale.h>
 #include <math.h>
 #include <stdio.h>
@@ -25,7 +26,7 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   int highlight = 0;
   div_t padding;
 
-  for (int i = 0; i < number_of_elements; i++) {
+  for (size_t i = 0; i < number_of_elements; i++) {
     total_text_size += strlen(choices[i]);
   }
   padding = div((x_max - total_text_size), (number_of_elements + 1));
@@ -36,7 +37,7 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   clear();
   while (1) {
     cursor_location = start_location;
-    for (int i = 0; i < number_of_elements; i++) {
+    for (size_t i = 0; i < number_of_elements; i++) {
       if (i == highlight) wattron(stdscr, A_REVERSE);
       mvprintw(y_max / 2, cursor_location += padding.quot, "%s", choices[i]);
       wattroff(stdscr, A_REVERSE);
@@ -75,7 +76,7 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
   clear();
   while (1) {
     cursor_location = padding;
-    for (int i = 0; i < number_of_elements; i++) {
+    for (size_t i = 0; i < number_of_elements; i++) {
       if (i == highlight) wattron(stdscr, A_REVERSE);
       mvprintw(cursor_location, 5, "%s", choices[i]);
       wattroff(stdscr, A_REVERSE);
@@ -117,39 +118,61 @@ int InitializeFiles(char* file_name) {
 
 int CreateAccountMenu() {
   int current_input = 0;
-  int choice = 0;
+  int key_pressed = 0;
   char* fields[] = {"First Name", "Last Name"};
   int number_of_elements = sizeof(fields) / sizeof(fields[0]);
+  char** fields_text = calloc(2, sizeof(char*));
+  assert(fields_text);
+  curs_set(0);
+  for (size_t i = 0; i < number_of_elements; i++) {
+    fields_text[i] = calloc(51, sizeof(char));
+    assert(fields_text[i]);
+  }
   while (55 != number_of_elements) {
     clear();
-    for (int i = 0; i < number_of_elements; i++) {
+    for (size_t i = 0; i < number_of_elements; i++) {
       if (current_input == i) {
         mvprintw(i, 0, "> ");
       } else {
         mvprintw(i, 0, "  ");
       }
       printw("%s: ", fields[i]);
+      printw("%s", fields_text[i]);
     }
     if (current_input < number_of_elements) {
-      mvprintw(current_input, strlen(fields[current_input]) + 4, "");
+      mvprintw(current_input,
+               strlen(fields[current_input]) + 4 +
+                   strlen(fields_text[current_input]),
+               "");
       curs_set(1);
     } else {
       curs_set(0);
     }
-    choice = wgetch(stdscr);
-    if (choice >= 97 && choice <= 122 || choice >= 65 && choice <= 90 ||
-        choice == 32) {
-      mvprintw(current_input, strlen(fields[current_input]) + 4, "");
+    key_pressed = wgetch(stdscr);
+    if (current_input < number_of_elements) {
+      if (key_pressed >= 97 && key_pressed <= 122 ||
+          key_pressed >= 65 && key_pressed <= 90 || key_pressed == 32) {
+        int len = strlen(fields_text[current_input]);
+        if (len < 50) {
+          mvprintw(current_input, len + 4, "");
+          fields_text[current_input][len] = key_pressed;
+          fields_text[current_input][len + 1] = '\0';
+        }
+      }
+      if (key_pressed == 8) {
+        fields_text[current_input][strlen(fields_text[current_input]) - 1] =
+            '\0';
+      }
     }
-    if ((choice == 9 || choice == 258) && current_input < number_of_elements) {
+    if (key_pressed == 9 || key_pressed == 258 || key_pressed == 10) {
       current_input++;
     }
-    if ((choice == 351 || choice == 259) && current_input > 0) {
+    if ((key_pressed == 351 || key_pressed == 259) && current_input > 0) {
       current_input--;
     }
-    refresh();
-  }
-  return 0;
+  refresh();
+}
+return 0;
 }
 
 int main() {
