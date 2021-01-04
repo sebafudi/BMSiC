@@ -116,15 +116,17 @@ int InitializeFiles(char* file_name) {
 }
 
 int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
-              int x_max) {
+              int x_max, bool already_set) {
   int current_input = 0;
   int key_pressed = 0;
   int number_of_elements = size / sizeof(fields[0]);
   bool exit = 0;
   curs_set(0);
-  for (size_t i = 0; i < number_of_elements; i++) {
-    fields_text[i] = calloc(51, sizeof(char));
-    assert(fields_text[i]);
+  if (!already_set) {
+    for (size_t i = 0; i < number_of_elements; i++) {
+      fields_text[i] = calloc(51, sizeof(char));
+      assert(fields_text[i]);
+    }
   }
   while (exit == 0) {
     clear();
@@ -180,8 +182,8 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
 }
 
 int main() {
-  char* text[] = {"LOG IN", "SIGN IN"};
-  char* sign_in_text[] = {"First Name", "Last Name"};
+  char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
+  char* sign_in_text[] = {"First Name", "Last Name", "Login", "Password"};
   char* log_in_text[] = {"Login", "Password"};
   char** fields_text = calloc(10, sizeof(char*));
   assert(fields_text);
@@ -220,22 +222,56 @@ int main() {
   printw("Hello BMSiC!\n");
   printw("y_max: %d\nx_max: %d\n", y_max, x_max);
   clear();
-  refresh();
-  clear();
-  refresh();
   // getch();
+  int stage = 0;
   do {
-    choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
-    if (choice == 0) {
-      choice = InputMenu(&log_in_text, sizeof(log_in_text), fields_text, y_max,
-                         x_max);
-    } else if (choice == 1) {
-      choice = InputMenu(&sign_in_text, sizeof(sign_in_text), fields_text,
-                         y_max, x_max);
+    if (stage == 0) {
+      choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
+      if (choice == 2) {
+        return 0;
+      }
+      stage = 1;
+    }
+    if (stage == 1) {
+      if (choice == 0) {
+        choice = InputMenu(&log_in_text, sizeof(log_in_text), fields_text,
+                           y_max, x_max, 0);
+      } else if (choice == 1) {
+        bool flag = 0;
+        char error_text[50];
+        choice = 0;
+        while (choice != 27) {
+          choice = InputMenu(&sign_in_text, sizeof(sign_in_text), fields_text,
+                             y_max, x_max, flag);
+          flag = 1;
+          if (choice == 27) {
+            stage = 0;
+            break;
+          } else if (strlen(fields_text[0]) == 0) {
+            strcpy_s(&error_text, sizeof(error_text),
+                     "First Name cannot be empty!");
+          } else if (strlen(fields_text[1]) == 0) {
+            strcpy_s(&error_text, sizeof(error_text),
+                     "Last Name cannot be empty!");
+          } else if (strlen(fields_text[2]) == 0) {
+            strcpy_s(&error_text, sizeof(error_text),
+                     "Login cannot be empty!");
+          } else if (strlen(fields_text[3]) < 8) {
+            strcpy_s(&error_text, sizeof(error_text), "Password must have 8 or more characters!");
+          } else if (choice != 27) {
+            break;
+          }
+          clear();
+          printw("%s", error_text);
+          getch();
+        }
+      }
+      if (choice == 27) {
+        stage = 0;
+      }
     }
   } while (choice != 10);
   clear();
-  refresh();
   printw("You chose: %d\n%s\n%s", choice, fields_text[0], fields_text[1]);
   getch();
   endwin();
