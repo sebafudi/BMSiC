@@ -198,34 +198,49 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
 
 void SafelyClose() { exit(0); }
 
-int SaveUser(char* file_name, char data_separator, struct Account current_account) {
-  FILE* file;
-  fopen_s(&file, file_name, "a");
-  if (file != NULL) {
-    fprintf(file, "%d", current_account.account_id);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%s", current_account.first_name);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%s", current_account.last_name);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%s", current_account.login);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%s", current_account.password);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%d", (int)current_account.date_created);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%d", current_account.accout_type);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%f", current_account.balance);
-    fprintf(file, "\n");
-    fclose(file);
-  }
+int CreateUser(struct Account* current_account) {
+  current_account->account_id = 0;
+  strcpy_s(current_account->first_name, sizeof(current_account->first_name),
+           "Sebastian");
+  strcpy_s(current_account->last_name, sizeof(current_account->last_name),
+           "Fudalej");
+  strcpy_s(current_account->login, sizeof(current_account->login), "sebafudi");
+  strcpy_s(current_account->password, sizeof(current_account->password),
+           "12345678");
+  _time64(&current_account->date_created);
+  current_account->accout_type = 1;
+  current_account->balance = 123.45;
   return 0;
 }
 
-int ReadUser() {
-
+int SaveUser(char* file_name, char data_separator,
+             struct Account* current_account) {
+  FILE* file;
+  fopen_s(&file, file_name, "a");
+  if (file != NULL) {
+    fprintf(file, "%d", current_account->account_id);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account->first_name);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account->last_name);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account->login);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account->password);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%d", (int)current_account->date_created);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%d", current_account->accout_type);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%f", current_account->balance);
+    fprintf(file, "\n");
+    fclose(file);
+    return 0;
+  }
+  return 1;
 }
+
+int ReadUser() {}
 
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
@@ -249,25 +264,16 @@ int main() {
     if (InitializeFiles(file_name) == 0) {
       printf_s("Successfully created files!\n");
     } else {
-      printf_s("Unable to create file.\nProgram will close.");
+      printf_s("Unable to create file.\nProgram will close.\n");
+      system("PAUSE");
       return 1;
     }
     system("PAUSE");
+  } else if (file != NULL) {
+    fclose(file);
   }
-
-  current_account.account_id = 0;
-  strcpy_s(current_account.first_name, sizeof(current_account.first_name),
-           "Sebastian");
-  strcpy_s(current_account.last_name, sizeof(current_account.last_name),
-           "Fudalej");
-  strcpy_s(current_account.login, sizeof(current_account.login), "sebafudi");
-  strcpy_s(current_account.password, sizeof(current_account.password),
-           "asdf1234");
-  _time64(&current_account.date_created);
-  current_account.accout_type = 1;
-  current_account.balance = 123.45;
-
-  SaveUser(file_name, data_separator, current_account);
+  CreateUser(&current_account);
+  SaveUser(file_name, data_separator, &current_account);
 
   initscr();
   noecho();
