@@ -135,7 +135,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
   }
   while (exit == 0) {
     clear();
-    for (int i = 0; i < number_of_elements; i++) {
+    for (size_t i = 0; i < number_of_elements; i++) {
       if (current_input == i) {
         mvprintw(i, 0, "> ");
       } else {
@@ -143,7 +143,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
       }
       printw("%s: ", fields[i]);
       if (fields[i] == "Password") {
-        for (int j = 0; j < strlen(fields_text[i]); j++) {
+        for (size_t j = 0; j < strlen(fields_text[i]); j++) {
           printw("*");
         }
       } else {
@@ -161,8 +161,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
     }
     key_pressed = wgetch(stdscr);
     if (current_input < number_of_elements) {
-      if (key_pressed >= 97 && key_pressed <= 122 ||
-          key_pressed >= 65 && key_pressed <= 90 || key_pressed == 32) {
+      if (key_pressed >= 32 && key_pressed <= 126) {
         int len = strlen(fields_text[current_input]);
         if (len < 50) {
           mvprintw(current_input, len + 4, "");
