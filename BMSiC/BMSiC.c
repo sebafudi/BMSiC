@@ -198,7 +198,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
 
 void SafelyClose() { exit(0); }
 
-int CreateUser(struct Account* current_account) {
+int CreateUser(struct Account* current_account, char** fields_text) {
   current_account->account_id = 0;
   strcpy_s(current_account->first_name, sizeof(current_account->first_name),
            "Sebastian");
@@ -242,6 +242,49 @@ int SaveUser(char* file_name, char data_separator,
 
 int ReadUser() {}
 
+int GetLastId(char* file_name, char data_separator) {
+  FILE* file;
+  fopen_s(&file, file_name, "r");
+  if (file != NULL) {
+    long file_size;
+    char current_character;
+    int count = 0;
+    int end;
+    int start;
+    char last_id[16] = "";
+    int int_last_id = -1;
+    fseek(file, 0L, SEEK_END);
+    file_size = ftell(file);
+    for (size_t i = 0; i < file_size; i++) {
+      fseek(file, -1 * i - 1, SEEK_END);
+      current_character = fgetc(file);
+      if (current_character == '\n') {
+        count++;
+      }
+      if (current_character == '\n' && count <= 2) {
+        end = i;
+      }
+      if (current_character == '\n' && count > 2) {
+        start = i;
+        fseek(file, -start, SEEK_END);
+        for (int i = 0; i < start - end; i++) {
+          current_character = fgetc(file);
+          if (current_character == data_separator) {
+            int_last_id = atoi(last_id);
+            break;
+          }
+          sprintf_s(&last_id, sizeof(last_id), "%s%c", last_id,
+                    current_character);
+        }
+        break;
+      }
+    }
+    fclose(file);
+    return int_last_id;
+  }
+  return -1;
+}
+
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
   char* sign_in_text[] = {"First Name", "Last Name", "Login", "Password"};
@@ -272,8 +315,6 @@ int main() {
   } else if (file != NULL) {
     fclose(file);
   }
-  CreateUser(&current_account);
-  SaveUser(file_name, data_separator, &current_account);
 
   initscr();
   noecho();
@@ -342,6 +383,24 @@ int main() {
       }
     }
   } while (choice != 10);
+  if (choice == 10) {
+    CreateUser(&current_account, &fields_text);
+
+    current_account.account_id = GetLastId(file_name, data_separator) + 1;
+    strcpy_s(current_account.first_name, sizeof(current_account.first_name),
+             fields_text[0]);
+    strcpy_s(current_account.last_name, sizeof(current_account.last_name),
+             fields_text[1]);
+    strcpy_s(current_account.login, sizeof(current_account.login),
+             fields_text[2]);
+    strcpy_s(current_account.password, sizeof(current_account.password),
+             fields_text[3]);
+    _time64(&current_account.date_created);
+    current_account.accout_type = 0;
+    current_account.balance = 0;
+
+    SaveUser(file_name, data_separator, &current_account);
+  }
   clear();
   printw("You chose: %d\n%s\n%s", choice, fields_text[0], fields_text[1]);
   getch();
