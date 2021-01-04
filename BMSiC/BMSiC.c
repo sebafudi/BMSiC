@@ -58,9 +58,11 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
         break;
     }
     if (choice == 10) {
-      clear(stdscr);
       refresh();
       return highlight;
+    }
+    if (choice == 27) {
+      return 27;
     }
   }
   return 0;
@@ -100,6 +102,9 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
     if (choice == 10) {
       return highlight;
     }
+    if (choice == 27) {
+      return 27;
+    }
     refresh();
   }
   return 0;
@@ -130,14 +135,20 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
   }
   while (exit == 0) {
     clear();
-    for (size_t i = 0; i < number_of_elements; i++) {
+    for (int i = 0; i < number_of_elements; i++) {
       if (current_input == i) {
         mvprintw(i, 0, "> ");
       } else {
         mvprintw(i, 0, "  ");
       }
       printw("%s: ", fields[i]);
-      printw("%s", fields_text[i]);
+      if (fields[i] == "Password") {
+        for (int j = 0; j < strlen(fields_text[i]); j++) {
+          printw("*");
+        }
+      } else {
+        printw("%s", fields_text[i]);
+      }
     }
     if (current_input < number_of_elements) {
       mvprintw(current_input,
@@ -180,6 +191,8 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
   }
   return 0;
 }
+
+void SafelyClose() { exit(0); }
 
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
@@ -228,7 +241,10 @@ int main() {
     if (stage == 0) {
       choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
       if (choice == 2) {
-        return 0;
+        SafelyClose();
+      }
+      if (choice == 27) {
+        SafelyClose();
       }
       stage = 1;
     }
@@ -254,10 +270,10 @@ int main() {
             strcpy_s(&error_text, sizeof(error_text),
                      "Last Name cannot be empty!");
           } else if (strlen(fields_text[2]) == 0) {
-            strcpy_s(&error_text, sizeof(error_text),
-                     "Login cannot be empty!");
+            strcpy_s(&error_text, sizeof(error_text), "Login cannot be empty!");
           } else if (strlen(fields_text[3]) < 8) {
-            strcpy_s(&error_text, sizeof(error_text), "Password must have 8 or more characters!");
+            strcpy_s(&error_text, sizeof(error_text),
+                     "Password must have 8 or more characters!");
           } else if (choice != 27) {
             break;
           }
