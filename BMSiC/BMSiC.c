@@ -12,8 +12,11 @@ struct Account {
   int account_id;
   char first_name[64];
   char last_name[64];
-  time_t date_created;
+  char login[64];
+  char password[64];
+  __time64_t date_created;
   char accout_type;
+  double balance;
 };
 
 int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
@@ -114,7 +117,7 @@ int InitializeFiles(char* file_name) {
   FILE* file;
   fopen_s(&file, file_name, "w");
   if (file != NULL) {
-    fprintf(file, "BMSiC");
+    fprintf(file, "BMSiC\n");
     fclose(file);
   }
   return 0;
@@ -129,7 +132,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
   curs_set(0);
   if (!already_set) {
     for (size_t i = 0; i < number_of_elements; i++) {
-      fields_text[i] = calloc(51, sizeof(char));
+      fields_text[i] = calloc(64, sizeof(char));
       assert(fields_text[i]);
     }
   }
@@ -151,11 +154,13 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
       }
     }
     if (current_input < number_of_elements) {
-      mvprintw(current_input,
-               strlen(fields[current_input]) + 4 +
-                   strlen(fields_text[current_input]),
-               "");
-      curs_set(1);
+      if (fields[current_input]) {
+        mvprintw(current_input,
+                 strlen(fields[current_input]) + 4 +
+                     strlen(fields_text[current_input]),
+                 "");
+        curs_set(1);
+      }
     } else {
       curs_set(0);
     }
@@ -163,7 +168,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
     if (current_input < number_of_elements) {
       if (key_pressed >= 32 && key_pressed <= 126) {
         int len = strlen(fields_text[current_input]);
-        if (len < 50) {
+        if (len < 63) {
           mvprintw(current_input, len + 4, "");
           fields_text[current_input][len] = key_pressed;
           fields_text[current_input][len + 1] = '\0';
@@ -193,17 +198,48 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
 
 void SafelyClose() { exit(0); }
 
+int SaveUser(char* file_name, char data_separator, struct Account current_account) {
+  FILE* file;
+  fopen_s(&file, file_name, "a");
+  if (file != NULL) {
+    fprintf(file, "%d", current_account.account_id);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account.first_name);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account.last_name);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account.login);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account.password);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%d", (int)current_account.date_created);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%d", current_account.accout_type);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%f", current_account.balance);
+    fprintf(file, "\n");
+    fclose(file);
+  }
+  return 0;
+}
+
+int ReadUser() {
+
+}
+
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
   char* sign_in_text[] = {"First Name", "Last Name", "Login", "Password"};
   char* log_in_text[] = {"Login", "Password"};
   char** fields_text = calloc(10, sizeof(char*));
-  assert(fields_text);
+  char data_separator = 149;
+  struct Account current_account;
   int y_max, x_max;
   int choice;
   FILE* file;
   char* file_name = "bmsic_db.txt";
   errno_t err;
+  assert(fields_text);
 
   setlocale(LC_CTYPE, "Polish");
 
@@ -213,11 +249,25 @@ int main() {
     if (InitializeFiles(file_name) == 0) {
       printf_s("Successfully created files!\n");
     } else {
-      printf_s("Unable to create file. \nProgram will close.");
+      printf_s("Unable to create file.\nProgram will close.");
       return 1;
     }
     system("PAUSE");
   }
+
+  current_account.account_id = 0;
+  strcpy_s(current_account.first_name, sizeof(current_account.first_name),
+           "Sebastian");
+  strcpy_s(current_account.last_name, sizeof(current_account.last_name),
+           "Fudalej");
+  strcpy_s(current_account.login, sizeof(current_account.login), "sebafudi");
+  strcpy_s(current_account.password, sizeof(current_account.password),
+           "asdf1234");
+  _time64(&current_account.date_created);
+  current_account.accout_type = 1;
+  current_account.balance = 123.45;
+
+  SaveUser(file_name, data_separator, current_account);
 
   initscr();
   noecho();
