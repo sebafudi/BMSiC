@@ -16,6 +16,7 @@ struct Account {
   char password[64];
   __time64_t date_created;
   char accout_type;
+  char account_number[26];
   double balance;
 };
 
@@ -198,18 +199,22 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
 
 void SafelyClose() { exit(0); }
 
-int CreateUser(struct Account* current_account, char** fields_text) {
-  current_account->account_id = 0;
+int CreateUser(struct Account* current_account, char** fields_text, int count,
+               int last_id) {
+  current_account->account_id = last_id + 1;
   strcpy_s(current_account->first_name, sizeof(current_account->first_name),
-           "Sebastian");
+           fields_text[0]);
   strcpy_s(current_account->last_name, sizeof(current_account->last_name),
-           "Fudalej");
-  strcpy_s(current_account->login, sizeof(current_account->login), "sebafudi");
+           fields_text[1]);
+  strcpy_s(current_account->login, sizeof(current_account->login),
+           fields_text[2]);
   strcpy_s(current_account->password, sizeof(current_account->password),
-           "12345678");
+           fields_text[3]);
   _time64(&current_account->date_created);
-  current_account->accout_type = 1;
-  current_account->balance = 123.45;
+  current_account->accout_type = 0;
+  strcpy_s(current_account->account_number,
+           sizeof(current_account->account_number), "12512323123521321312511");
+  current_account->balance = 0;
   return 0;
 }
 
@@ -231,6 +236,8 @@ int SaveUser(char* file_name, char data_separator,
     fprintf(file, "%d", (int)current_account->date_created);
     fprintf(file, "%c", data_separator);
     fprintf(file, "%d", current_account->accout_type);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account->account_number);
     fprintf(file, "%c", data_separator);
     fprintf(file, "%f", current_account->balance);
     fprintf(file, "\n");
@@ -384,21 +391,8 @@ int main() {
     }
   } while (choice != 10);
   if (choice == 10) {
-    CreateUser(&current_account, &fields_text);
-
-    current_account.account_id = GetLastId(file_name, data_separator) + 1;
-    strcpy_s(current_account.first_name, sizeof(current_account.first_name),
-             fields_text[0]);
-    strcpy_s(current_account.last_name, sizeof(current_account.last_name),
-             fields_text[1]);
-    strcpy_s(current_account.login, sizeof(current_account.login),
-             fields_text[2]);
-    strcpy_s(current_account.password, sizeof(current_account.password),
-             fields_text[3]);
-    _time64(&current_account.date_created);
-    current_account.accout_type = 0;
-    current_account.balance = 0;
-
+    CreateUser(&current_account, fields_text, sizeof(fields_text),
+               GetLastId(file_name, data_separator));
     SaveUser(file_name, data_separator, &current_account);
   }
   clear();
