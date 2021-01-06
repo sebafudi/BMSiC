@@ -16,7 +16,7 @@ struct Account {
   char password[64];
   __time64_t date_created;
   char accout_type;
-  char account_number[26];
+  char account_number[27];
   double balance;
 };
 
@@ -199,6 +199,15 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
 
 void SafelyClose() { exit(0); }
 
+char* GenerateAccountNumber() {
+  char random_number[27];
+  for (size_t i = 0; i < 26; i++) {
+    random_number[i] = rand() % 10 + '0';
+    random_number[i + 1] = '\0';
+  }
+  return random_number;
+}
+
 int CreateUser(struct Account* current_account, char** fields_text, int count,
                int last_id) {
   current_account->account_id = last_id + 1;
@@ -213,7 +222,7 @@ int CreateUser(struct Account* current_account, char** fields_text, int count,
   _time64(&current_account->date_created);
   current_account->accout_type = 0;
   strcpy_s(current_account->account_number,
-           sizeof(current_account->account_number), "12512323123521321312511");
+           sizeof(current_account->account_number), GenerateAccountNumber());
   current_account->balance = 0;
   return 0;
 }
@@ -307,6 +316,7 @@ int main() {
   assert(fields_text);
 
   setlocale(LC_CTYPE, "Polish");
+  srand(time(0));
 
   err = fopen_s(&file, file_name, "r");
   if (err != 0) {
