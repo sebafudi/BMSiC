@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <windows.h>
 
 struct Account {
   int account_id;
@@ -20,8 +19,7 @@ struct Account {
   double balance;
 };
 
-int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
-                          int x_max) {
+int DisplayHorizontalMenu(char** choices, int size, int y_max, int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int total_text_size = 0;
   int cursor_location = 0;
@@ -31,7 +29,7 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   div_t padding;
   curs_set(0);
   for (size_t i = 0; i < number_of_elements; i++) {
-    total_text_size += strlen(choices[i]);
+    total_text_size += (int)strlen(choices[i]);
   }
   padding = div((x_max - total_text_size), (number_of_elements + 1));
   if (padding.rem > 0) {
@@ -41,11 +39,11 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   clear();
   while (1) {
     cursor_location = start_location;
-    for (size_t i = 0; i < number_of_elements; i++) {
+    for (int i = 0; i < number_of_elements; i++) {
       if (i == highlight) wattron(stdscr, A_REVERSE);
       mvprintw(y_max / 2, cursor_location += padding.quot, "%s", choices[i]);
       wattroff(stdscr, A_REVERSE);
-      cursor_location += strlen(choices[i]);
+      cursor_location += (int)strlen(choices[i]);
     }
     choice = wgetch(stdscr);
     switch (choice) {
@@ -72,8 +70,7 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   return 0;
 }
 
-int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
-                        int x_max) {
+int DisplayVerticalMenu(char** choices, int size, int y_max, int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int padding = (y_max - number_of_elements * 2 - 1) / 2 + 1;
   int cursor_location;
@@ -83,7 +80,7 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
   clear();
   while (1) {
     cursor_location = padding;
-    for (size_t i = 0; i < number_of_elements; i++) {
+    for (int i = 0; i < number_of_elements; i++) {
       if (i == highlight) wattron(stdscr, A_REVERSE);
       mvprintw(cursor_location, 5, "%s", choices[i]);
       wattroff(stdscr, A_REVERSE);
@@ -124,22 +121,22 @@ int InitializeFiles(char* file_name) {
   return 0;
 }
 
-int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
-              int x_max, bool already_set) {
+int InputMenu(char** fields, int size, char** fields_text, int y_max, int x_max,
+              bool already_set) {
   int current_input = 0;
   int key_pressed = 0;
   int number_of_elements = size / sizeof(fields[0]);
   bool exit = 0;
   curs_set(0);
   if (!already_set) {
-    for (size_t i = 0; i < number_of_elements; i++) {
+    for (int i = 0; i < number_of_elements; i++) {
       fields_text[i] = calloc(64, sizeof(char));
       assert(fields_text[i]);
     }
   }
   while (exit == 0) {
     clear();
-    for (size_t i = 0; i < number_of_elements; i++) {
+    for (int i = 0; i < number_of_elements; i++) {
       if (current_input == i) {
         mvprintw(i, 0, "> ");
       } else {
@@ -147,7 +144,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
       }
       printw("%s: ", fields[i]);
       if (fields[i] == "Password") {
-        for (size_t j = 0; j < strlen(fields_text[i]); j++) {
+        for (int j = 0; j < strlen(fields_text[i]); j++) {
           printw("*");
         }
       } else {
@@ -157,8 +154,8 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
     if (current_input < number_of_elements) {
       if (fields[current_input]) {
         mvprintw(current_input,
-                 strlen(fields[current_input]) + 4 +
-                     strlen(fields_text[current_input]),
+                 (int)strlen(fields[current_input]) + 4 +
+                     (int)strlen(fields_text[current_input]),
                  "");
         curs_set(1);
       }
@@ -168,7 +165,7 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
     key_pressed = wgetch(stdscr);
     if (current_input < number_of_elements) {
       if (key_pressed >= 32 && key_pressed <= 126) {
-        int len = strlen(fields_text[current_input]);
+        int len = (int)strlen(fields_text[current_input]);
         if (len < 63) {
           mvprintw(current_input, len + 4, "");
           fields_text[current_input][len] = key_pressed;
@@ -199,17 +196,17 @@ int InputMenu(char** fields, unsigned int size, char** fields_text, int y_max,
 
 void SafelyClose() { exit(0); }
 
-char* GenerateAccountNumber() {
-  char random_number[27];
-  for (size_t i = 0; i < 26; i++) {
+void GenerateAccountNumber(char* random_number, size_t size) {
+  for (int i = 0; i < size - 1; i++) {
     random_number[i] = rand() % 10 + '0';
     random_number[i + 1] = '\0';
   }
-  return random_number;
 }
 
 int CreateUser(struct Account* current_account, char** fields_text, int count,
                int last_id) {
+  char random_number[27] = {'\0'};
+  GenerateAccountNumber(random_number, sizeof(random_number));
   current_account->account_id = last_id + 1;
   strcpy_s(current_account->first_name, sizeof(current_account->first_name),
            fields_text[0]);
@@ -222,7 +219,7 @@ int CreateUser(struct Account* current_account, char** fields_text, int count,
   _time64(&current_account->date_created);
   current_account->accout_type = 0;
   strcpy_s(current_account->account_number,
-           sizeof(current_account->account_number), GenerateAccountNumber());
+           sizeof(current_account->account_number), random_number);
   current_account->balance = 0;
   return 0;
 }
@@ -256,7 +253,7 @@ int SaveUser(char* file_name, char data_separator,
   return 1;
 }
 
-int ReadUser() {}
+int ReadUser() { return 0; }
 
 int GetLastId(char* file_name, char data_separator) {
   FILE* file;
@@ -271,7 +268,7 @@ int GetLastId(char* file_name, char data_separator) {
     int int_last_id = -1;
     fseek(file, 0L, SEEK_END);
     file_size = ftell(file);
-    for (size_t i = 0; i < file_size; i++) {
+    for (int i = 0; i < file_size; i++) {
       fseek(file, -1 * i - 1, SEEK_END);
       current_character = fgetc(file);
       if (current_character == '\n') {
@@ -289,7 +286,7 @@ int GetLastId(char* file_name, char data_separator) {
             int_last_id = atoi(last_id);
             break;
           }
-          sprintf_s(&last_id, sizeof(last_id), "%s%c", last_id,
+          sprintf_s(last_id, sizeof(last_id), "%s%c", last_id,
                     current_character);
         }
         break;
@@ -309,14 +306,14 @@ int main() {
   char data_separator = 149;
   struct Account current_account;
   int y_max, x_max;
-  int choice;
+  int choice = -1;
   FILE* file;
   char* file_name = "bmsic_db.txt";
   errno_t err;
   assert(fields_text);
 
   setlocale(LC_CTYPE, "Polish");
-  srand(time(0));
+  srand((unsigned int)time(0));
 
   err = fopen_s(&file, file_name, "r");
   if (err != 0) {
@@ -352,7 +349,7 @@ int main() {
   int stage = 0;
   do {
     if (stage == 0) {
-      choice = DisplayHorizontalMenu(&text, sizeof(text), y_max, x_max);
+      choice = DisplayHorizontalMenu(text, sizeof(text), y_max, x_max);
       if (choice == 2) {
         SafelyClose();
       }
@@ -363,29 +360,29 @@ int main() {
     }
     if (stage == 1) {
       if (choice == 0) {
-        choice = InputMenu(&log_in_text, sizeof(log_in_text), fields_text,
-                           y_max, x_max, 0);
+        choice = InputMenu(log_in_text, sizeof(log_in_text), fields_text, y_max,
+                           x_max, 0);
       } else if (choice == 1) {
         bool flag = 0;
         char error_text[50];
         choice = 0;
         while (choice != 27) {
-          choice = InputMenu(&sign_in_text, sizeof(sign_in_text), fields_text,
+          choice = InputMenu(sign_in_text, sizeof(sign_in_text), fields_text,
                              y_max, x_max, flag);
           flag = 1;
           if (choice == 27) {
             stage = 0;
             break;
           } else if (strlen(fields_text[0]) == 0) {
-            strcpy_s(&error_text, sizeof(error_text),
+            strcpy_s(error_text, sizeof(error_text),
                      "First Name cannot be empty!");
           } else if (strlen(fields_text[1]) == 0) {
-            strcpy_s(&error_text, sizeof(error_text),
+            strcpy_s(error_text, sizeof(error_text),
                      "Last Name cannot be empty!");
           } else if (strlen(fields_text[2]) == 0) {
-            strcpy_s(&error_text, sizeof(error_text), "Login cannot be empty!");
+            strcpy_s(error_text, sizeof(error_text), "Login cannot be empty!");
           } else if (strlen(fields_text[3]) < 8) {
-            strcpy_s(&error_text, sizeof(error_text),
+            strcpy_s(error_text, sizeof(error_text),
                      "Password must have 8 or more characters!");
           } else if (choice != 27) {
             break;
