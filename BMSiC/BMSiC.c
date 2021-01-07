@@ -9,17 +9,18 @@
 
 struct Account {
   int account_id;
-  char first_name[64];
-  char last_name[64];
+  char account_number[27];
   char login[64];
   char password[64];
+  char first_name[64];
+  char last_name[64];
   __time64_t date_created;
   char accout_type;
-  char account_number[27];
-  double balance;
+  float balance;
 };
 
-int DisplayHorizontalMenu(char** choices, int size, int y_max, int x_max) {
+int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
+                          int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int total_text_size = 0;
   int cursor_location = 0;
@@ -70,7 +71,8 @@ int DisplayHorizontalMenu(char** choices, int size, int y_max, int x_max) {
   return 0;
 }
 
-int DisplayVerticalMenu(char** choices, int size, int y_max, int x_max) {
+int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
+                        int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int padding = (y_max - number_of_elements * 2 - 1) / 2 + 1;
   int cursor_location;
@@ -203,18 +205,18 @@ void GenerateAccountNumber(char* random_number, size_t size) {
   }
 }
 
-int CreateUser(struct Account* current_account, char** fields_text, int count,
-               int last_id) {
+int CreateUser(struct Account* current_account, char** fields_text,
+               size_t count, int last_id) {
   char random_number[27] = {'\0'};
   GenerateAccountNumber(random_number, sizeof(random_number));
   current_account->account_id = last_id + 1;
-  strcpy_s(current_account->first_name, sizeof(current_account->first_name),
-           fields_text[0]);
-  strcpy_s(current_account->last_name, sizeof(current_account->last_name),
-           fields_text[1]);
   strcpy_s(current_account->login, sizeof(current_account->login),
-           fields_text[2]);
+           fields_text[0]);
   strcpy_s(current_account->password, sizeof(current_account->password),
+           fields_text[1]);
+  strcpy_s(current_account->first_name, sizeof(current_account->first_name),
+           fields_text[2]);
+  strcpy_s(current_account->last_name, sizeof(current_account->last_name),
            fields_text[3]);
   _time64(&current_account->date_created);
   current_account->accout_type = 0;
@@ -231,19 +233,19 @@ int SaveUser(char* file_name, char data_separator,
   if (file != NULL) {
     fprintf(file, "%d", current_account->account_id);
     fprintf(file, "%c", data_separator);
-    fprintf(file, "%s", current_account->first_name);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%s", current_account->last_name);
+    fprintf(file, "%s", current_account->account_number);
     fprintf(file, "%c", data_separator);
     fprintf(file, "%s", current_account->login);
     fprintf(file, "%c", data_separator);
     fprintf(file, "%s", current_account->password);
     fprintf(file, "%c", data_separator);
-    fprintf(file, "%d", (int)current_account->date_created);
+    fprintf(file, "%s", current_account->first_name);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%s", current_account->last_name);
+    fprintf(file, "%c", data_separator);
+    fprintf(file, "%d", (unsigned int)current_account->date_created);
     fprintf(file, "%c", data_separator);
     fprintf(file, "%d", current_account->accout_type);
-    fprintf(file, "%c", data_separator);
-    fprintf(file, "%s", current_account->account_number);
     fprintf(file, "%c", data_separator);
     fprintf(file, "%f", current_account->balance);
     fprintf(file, "\n");
@@ -253,7 +255,73 @@ int SaveUser(char* file_name, char data_separator,
   return 1;
 }
 
-int ReadUser() { return 0; }
+int ParseUserFromLine(char* data, struct Account* current_account) {
+  const int LINE_SIZE = 512;
+  const int MAX_FIELDS = 16;
+  char output[16][512] = {'\0'};
+  int i;
+  int output_field_count;
+  int output_char_idx;
+  char data_separator = 149;
+
+  output_field_count = 0;
+  output_char_idx = 0;
+
+  for (i = 0; i < LINE_SIZE; i++) {
+    if ((data[i] != data_separator) && (output_field_count < MAX_FIELDS) &&
+        ((output_char_idx + 1) < LINE_SIZE)) {
+      output[output_field_count][output_char_idx] = data[i];
+      output[output_field_count][output_char_idx + 1] = '\0';
+      output_char_idx++;
+    } else if (data[i] == data_separator) {
+      output_field_count++;
+      output_char_idx = 0;
+    }
+  }
+
+  current_account->account_id = atoi(output[0]);
+  strcpy_s(current_account->account_number,
+           sizeof(current_account->account_number), output[1]);
+  strcpy_s(current_account->login, sizeof(current_account->login), output[2]);
+  strcpy_s(current_account->password, sizeof(current_account->password),
+           output[3]);
+  strcpy_s(current_account->first_name, sizeof(current_account->first_name),
+           output[4]);
+  strcpy_s(current_account->last_name, sizeof(current_account->last_name),
+           output[5]);
+  current_account->date_created = atoi(output[6]);
+  current_account->accout_type = atoi(output[7]);
+  current_account->balance = (float)atof(output[8]);
+  return 0;
+}
+
+int FindLineContainingText(char* file_name, char* text, char* current_line,
+                           unsigned int current_line_size,
+                           struct Account* current_account) {
+  FILE* file;
+  int line_num = 1;
+  int find_result = 0;
+  fopen_s(&file, file_name, "r");
+  if (file != NULL) {
+    while (fgets(current_line, current_line_size, file) != NULL) {
+      if ((strstr(current_line, text)) != NULL) {
+        ParseUserFromLine(current_line, current_account);
+        if (!strcmp(text, current_account->login)) {
+          find_result++;
+          break;
+        }
+      }
+      line_num++;
+    }
+    if (find_result == 0) {
+      fclose(file);
+      return 1;
+    }
+    fclose(file);
+    return 0;
+  }
+  return 1;
+}
 
 int GetLastId(char* file_name, char data_separator) {
   FILE* file;
@@ -298,9 +366,19 @@ int GetLastId(char* file_name, char data_separator) {
   return -1;
 }
 
+int FindByLogin(char* file_name, char* login, struct Account* current_account) {
+  char found_line[512] = {'\0'};
+  int out = FindLineContainingText(file_name, login, found_line,
+                                 sizeof(found_line), current_account);
+  if (out == 0) {
+    return 0;
+  }
+  return 1;
+}
+
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
-  char* sign_in_text[] = {"First Name", "Last Name", "Login", "Password"};
+  char* sign_in_text[] = {"Login", "Password", "First Name", "Last Name"};
   char* log_in_text[] = {"Login", "Password"};
   char** fields_text = calloc(10, sizeof(char*));
   char data_separator = 149;
@@ -310,6 +388,7 @@ int main() {
   FILE* file;
   char* file_name = "bmsic_db.txt";
   errno_t err;
+  bool flag = 0;
   assert(fields_text);
 
   setlocale(LC_CTYPE, "Polish");
@@ -329,6 +408,8 @@ int main() {
   } else if (file != NULL) {
     fclose(file);
   }
+
+  system("PAUSE");
 
   initscr();
   noecho();
@@ -360,30 +441,53 @@ int main() {
     }
     if (stage == 1) {
       if (choice == 0) {
-        choice = InputMenu(log_in_text, sizeof(log_in_text), fields_text, y_max,
-                           x_max, 0);
+        while (choice != 27) {
+          choice = InputMenu(log_in_text, sizeof(log_in_text), fields_text,
+                             y_max, x_max, 0);
+          if (choice == 10) {
+            if (!FindByLogin(file_name, fields_text[0], &current_account)) {
+              clear();
+              if (!strcmp(fields_text[1],
+                          current_account.password) &&
+                  strlen(fields_text[0]) > 0 &&
+                  strlen(fields_text[1]) > 0) {  // Logged in user
+                printw("Correct!\nLoggin in...");
+              } else {
+                printw("Incorrect password!");
+              }
+              refresh();
+              getch();
+            } else {
+              clear();
+              printw("Incorrect password!");
+              refresh();
+              getch();
+            }
+          }
+        }
       } else if (choice == 1) {
-        bool flag = 0;
+        flag = 0;
         char error_text[50];
         choice = 0;
         while (choice != 27) {
           choice = InputMenu(sign_in_text, sizeof(sign_in_text), fields_text,
                              y_max, x_max, flag);
           flag = 1;
+
           if (choice == 27) {
             stage = 0;
             break;
           } else if (strlen(fields_text[0]) == 0) {
-            strcpy_s(error_text, sizeof(error_text),
-                     "First Name cannot be empty!");
-          } else if (strlen(fields_text[1]) == 0) {
-            strcpy_s(error_text, sizeof(error_text),
-                     "Last Name cannot be empty!");
-          } else if (strlen(fields_text[2]) == 0) {
             strcpy_s(error_text, sizeof(error_text), "Login cannot be empty!");
-          } else if (strlen(fields_text[3]) < 8) {
+          } else if (strlen(fields_text[1]) < 8) {
             strcpy_s(error_text, sizeof(error_text),
                      "Password must have 8 or more characters!");
+          } else if (strlen(fields_text[2]) == 0) {
+            strcpy_s(error_text, sizeof(error_text),
+                     "First Name cannot be empty!");
+          } else if (strlen(fields_text[3]) == 0) {
+            strcpy_s(error_text, sizeof(error_text),
+                     "Last Name cannot be empty!");
           } else if (choice != 27) {
             break;
           }
@@ -391,17 +495,17 @@ int main() {
           printw("%s", error_text);
           getch();
         }
+        if (choice == 10) {  // Registered user
+          CreateUser(&current_account, fields_text, sizeof(fields_text),
+                     GetLastId(file_name, data_separator));
+          SaveUser(file_name, data_separator, &current_account);
+        }
       }
       if (choice == 27) {
         stage = 0;
       }
     }
   } while (choice != 10);
-  if (choice == 10) {
-    CreateUser(&current_account, fields_text, sizeof(fields_text),
-               GetLastId(file_name, data_separator));
-    SaveUser(file_name, data_separator, &current_account);
-  }
   clear();
   printw("You chose: %d\n%s\n%s", choice, fields_text[0], fields_text[1]);
   getch();
