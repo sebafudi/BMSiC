@@ -196,7 +196,13 @@ int InputMenu(char** fields, int size, char** fields_text, int y_max, int x_max,
   return 0;
 }
 
-void SafelyClose() { exit(0); }
+void SafelyClose() {
+  clear();
+  endwin();
+  printf("Poprawnie zamknięto program\n");
+  system("pause");
+  exit(0);
+}
 
 void GenerateAccountNumber(char* random_number, size_t size) {
   for (int i = 0; i < size - 1; i++) {
@@ -369,17 +375,54 @@ int GetLastId(char* file_name, char data_separator) {
 int FindByLogin(char* file_name, char* login, struct Account* current_account) {
   char found_line[512] = {'\0'};
   int out = FindLineContainingText(file_name, login, found_line,
-                                 sizeof(found_line), current_account);
+                                   sizeof(found_line), current_account);
   if (out == 0) {
     return 0;
   }
   return 1;
 }
 
+int DisplayMyAccount(struct Account* current_account, char** my_account_text,
+                     unsigned int size, int y_max, int x_max) {
+  int choice;
+  choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
+  while (choice != 27) {
+    switch (choice) {
+      case 4:
+        return 27;
+      case 0:
+        DisplayUserBalance(current_account, y_max, x_max);
+      default:
+        choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
+    }
+  }
+  return 27;
+}
+
+int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
+  clear();
+  char first_line[128] = {'\0'};
+  char second_line[128] = {'\0'};
+  sprintf_s(&first_line, sizeof(first_line), "Welcome %s!",
+            current_account->first_name);
+  mvprintw((y_max - 2) / 2, (x_max - strlen(first_line)) / 2, "%s\n",
+           first_line);
+
+  sprintf_s(&second_line, sizeof(second_line), "Your account balance: %.2f",
+            current_account->balance);
+  mvprintw((y_max - 2) / 2 + 1, (x_max - strlen(second_line)) / 2, "%s\n",
+           second_line);
+  refresh();
+  getch();
+  return 0;
+}
+
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
   char* sign_in_text[] = {"Login", "Password", "First Name", "Last Name"};
   char* log_in_text[] = {"Login", "Password"};
+  char* my_account_text[] = {"BALANCE", "TRANSACTIONS", "DEPOSIT", "WITHDRAW",
+                             "LOG OUT"};
   char** fields_text = calloc(10, sizeof(char*));
   char data_separator = 149;
   struct Account current_account;
@@ -409,8 +452,6 @@ int main() {
   } else if (file != NULL) {
     fclose(file);
   }
-
-  system("PAUSE");
 
   initscr();
   noecho();
@@ -453,11 +494,14 @@ int main() {
                   strlen(fields_text[0]) > 0 &&
                   strlen(fields_text[1]) > 0) {  // Logged in user
                 printw("Correct!\nLoggin in...");
+                choice =
+                    DisplayMyAccount(&current_account, my_account_text,
+                                     sizeof(my_account_text), y_max, x_max);
               } else {
                 printw("Incorrect password!");
+                refresh();
+                getch();
               }
-              refresh();
-              getch();
             } else {
               clear();
               printw("Incorrect password!");
@@ -502,6 +546,8 @@ int main() {
           CreateUser(&current_account, fields_text, sizeof(fields_text),
                      GetLastId(file_name, data_separator));
           SaveUser(file_name, data_separator, &current_account);
+          choice = DisplayMyAccount(&current_account, my_account_text,
+                                    sizeof(my_account_text), y_max, x_max);
         }
       }
       if (choice == 27) {
@@ -509,10 +555,6 @@ int main() {
       }
     }
   } while (choice != 10);
-  clear();
-  printw("You chose: %d\n%s\n%s", choice, fields_text[0], fields_text[1]);
-  getch();
-  endwin();
-  system("pause");
+  SafelyClose();
   return 0;
 }
