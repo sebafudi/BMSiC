@@ -383,6 +383,7 @@ int main() {
   char** fields_text = calloc(10, sizeof(char*));
   char data_separator = 149;
   struct Account current_account;
+  struct Account temp_account;
   int y_max, x_max;
   int choice = -1;
   FILE* file;
@@ -488,6 +489,8 @@ int main() {
           } else if (strlen(fields_text[3]) == 0) {
             strcpy_s(error_text, sizeof(error_text),
                      "Last Name cannot be empty!");
+          } else if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
+            strcpy_s(error_text, sizeof(error_text), "Login already exists");
           } else if (choice != 27) {
             break;
           }
