@@ -321,12 +321,12 @@ int FindLineContainingText(char* file_name, char* text, char* current_line,
     }
     if (find_result == 0) {
       fclose(file);
-      return 1;
+      return -1;
     }
     fclose(file);
-    return 0;
+    return line_num;
   }
-  return 1;
+  return -1;
 }
 
 int GetLastId(char* file_name, char data_separator) {
@@ -372,19 +372,76 @@ int GetLastId(char* file_name, char data_separator) {
   return -1;
 }
 
+int ModifyUserInFile(char* file_name, char data_separator,
+                     struct Account* account_to_modify,
+                     struct Account* new_account_data) {
+  FILE* file;
+  FILE* file_temp;
+  char found_line[512] = {'\0'};
+  int lno =
+      FindLineContainingText(file_name, account_to_modify->login, found_line,
+                             sizeof(found_line), account_to_modify);
+  int linectr = 0;
+  char str[512];
+  char* file_tmp_name = "bmsic_tmp_db.txt";
+  fopen_s(&file, file_name, "r");
+  fopen_s(&file_temp, file_tmp_name, "w");
+  if (file != NULL && file_temp != NULL) {
+    while (!feof(file)) {
+      strcpy_s(str, sizeof(str), "\0");
+      fgets(str, sizeof(str), file);
+      if (!feof(file)) {
+        linectr++;
+        if (linectr != lno) {
+          fprintf(file_temp, "%s", str);
+        } else {
+          fprintf(file_temp, "%d", new_account_data->account_id);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%s", new_account_data->account_number);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%s", new_account_data->login);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%s", new_account_data->password);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%s", new_account_data->first_name);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%s", new_account_data->last_name);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%d",
+                  (unsigned int)new_account_data->date_created);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%d", new_account_data->accout_type);
+          fprintf(file_temp, "%c", data_separator);
+          fprintf(file_temp, "%f", new_account_data->balance);
+          fprintf(file_temp, "\n");
+        }
+      }
+    }
+    fclose(file);
+    fclose(file_temp);
+    remove(file_name);
+    int a = rename(file_tmp_name, file_name);
+    return 0;
+  }
+  return 1;
+}
+
 int FindByLogin(char* file_name, char* login, struct Account* current_account) {
   char found_line[512] = {'\0'};
   int out = FindLineContainingText(file_name, login, found_line,
                                    sizeof(found_line), current_account);
-  if (out == 0) {
+  if (out >= 0) {
     return 0;
   }
   return 1;
 }
 
 int DisplayMyAccount(struct Account* current_account, char** my_account_text,
-                     unsigned int size, int y_max, int x_max) {
+                     unsigned int size, int y_max, int x_max, char* file_name,
+                     char data_separator) {
   int choice;
+  float sum;
+  struct Account new_account_data = *current_account;
   choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
   while (choice != 27) {
     switch (choice) {
@@ -392,9 +449,22 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
         return 27;
       case 0:
         DisplayUserBalance(current_account, y_max, x_max);
+        break;
+      case 1:
+        sum = DisplayTransferMoney();
+        new_account_data.balance += 5;
+        ModifyUserInFile(file_name, data_separator, current_account, &new_account_data);
+        break;
+      case 2:
+        sum = DisplayDepositMoney(y_max, x_max);
+        break;
+      case 3:
+        sum = DisplayWithdrawMoney(y_max, x_max);
+        break;
       default:
-        choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
+        break;
     }
+    choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
   }
   return 27;
 }
@@ -413,6 +483,23 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
   mvprintw((y_max - 2) / 2 + 1, (x_max - strlen(second_line)) / 2, "%s\n",
            second_line);
   refresh();
+  getch();
+  return 0;
+}
+
+float DisplayTransferMoney() { return 0; }
+
+float DisplayDepositMoney(int y_max, int x_max) {
+  clear();
+  printw("Enter amount of money to deposit: ");
+
+  getch();
+  return 0;
+}
+
+float DisplayWithdrawMoney(int y_max, int x_max) {
+  clear();
+  printw("Enter amount of money to withdraw: ");
   getch();
   return 0;
 }
@@ -494,9 +581,9 @@ int main() {
                   strlen(fields_text[0]) > 0 &&
                   strlen(fields_text[1]) > 0) {  // Logged in user
                 printw("Correct!\nLoggin in...");
-                choice =
-                    DisplayMyAccount(&current_account, my_account_text,
-                                     sizeof(my_account_text), y_max, x_max);
+                choice = DisplayMyAccount(&current_account, my_account_text,
+                                          sizeof(my_account_text), y_max, x_max,
+                                          file_name, data_separator);
               } else {
                 printw("Incorrect password!");
                 refresh();
@@ -547,7 +634,8 @@ int main() {
                      GetLastId(file_name, data_separator));
           SaveUser(file_name, data_separator, &current_account);
           choice = DisplayMyAccount(&current_account, my_account_text,
-                                    sizeof(my_account_text), y_max, x_max);
+                                    sizeof(my_account_text), y_max, x_max,
+                                    file_name, data_separator);
         }
       }
       if (choice == 27) {
