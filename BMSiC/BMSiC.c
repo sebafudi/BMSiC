@@ -123,8 +123,8 @@ int InitializeFiles(char* file_name) {
   return 0;
 }
 
-int InputMenu(char** fields, int size, char** fields_text, int y_max, int x_max,
-              bool already_set) {
+int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
+                  int x_max, bool already_set) {
   int current_input = 0;
   int key_pressed = 0;
   int number_of_elements = size / sizeof(fields[0]);
@@ -194,6 +194,37 @@ int InputMenu(char** fields, int size, char** fields_text, int y_max, int x_max,
     refresh();
   }
   return 0;
+}
+
+float FloatInputMenu(char* text, int y_max, int x_max) {
+  int key_pressed = 0;
+  float number = 0;
+  char input[16] = {'\0'};
+  clear();
+  mvprintw(y_max / 2, 5, "%s: ", text);
+  curs_set(1);
+  while (key_pressed != 10) {
+    if (key_pressed >= 48 && key_pressed <= 57 || key_pressed == 46) {
+      if (strlen(input) < 15) {
+        if (!(key_pressed == 46 && (input[strlen(input) - 2] == '.' ||
+                                    input[strlen(input) - 1] == '.'))) {
+          if (input[strlen(input) - 3] != '.') {
+            sprintf_s(input, sizeof(input), "%s%c", input, key_pressed);
+          }
+        }
+      }
+    } else if (key_pressed == 8 && strlen(input) > 0) {
+      input[strlen(input) - 1] = '\0';
+    } else if (key_pressed == 27) {
+      return -1;
+    }
+    clear();
+    mvprintw(y_max / 2, 5, "%s: %s", text, input);
+    key_pressed = wgetch(stdscr);
+  }
+  curs_set(0);
+  number = atof(input);
+  return number;
 }
 
 void SafelyClose() {
@@ -290,12 +321,10 @@ int ParseUserFromLine(char* data, struct Account* current_account,
   strcpy_s(temp_account->account_number, sizeof(temp_account->account_number),
            output[1]);
   strcpy_s(temp_account->login, sizeof(temp_account->login), output[2]);
-  strcpy_s(temp_account->password, sizeof(temp_account->password),
-           output[3]);
+  strcpy_s(temp_account->password, sizeof(temp_account->password), output[3]);
   strcpy_s(temp_account->first_name, sizeof(temp_account->first_name),
            output[4]);
-  strcpy_s(temp_account->last_name, sizeof(temp_account->last_name),
-           output[5]);
+  strcpy_s(temp_account->last_name, sizeof(temp_account->last_name), output[5]);
   temp_account->date_created = atoi(output[6]);
   temp_account->accout_type = atoi(output[7]);
   temp_account->balance = (float)atof(output[8]);
@@ -380,8 +409,8 @@ int ModifyUserInFile(char* file_name, char data_separator,
   FILE* file;
   FILE* file_temp;
   char found_line[512] = {'\0'};
-  int lno =
-      FindLineContainingText(file_name, account_to_modify->login, found_line, sizeof(found_line),
+  int lno = FindLineContainingText(file_name, account_to_modify->login,
+                                   found_line, sizeof(found_line),
                                    account_to_modify, temp_account);
 
   int linectr = 0;
@@ -429,10 +458,25 @@ int ModifyUserInFile(char* file_name, char data_separator,
   return 1;
 }
 
-int FindByLogin(char* file_name, char* login, struct Account* current_account, struct Account* temp_account) {
+float DisplayDepositMoney(int y_max, int x_max) {
+  clear();
+  char* text = "Enter amount of money to deposit";
+  float sum = FloatInputMenu(text, y_max, x_max);
+  return sum;
+}
+
+float DisplayWithdrawMoney(int y_max, int x_max) {
+  clear();
+  char* text = "Enter amount of money to withdraw";
+  float sum = FloatInputMenu(text, y_max, x_max);
+  return sum;
+}
+int FindByLogin(char* file_name, char* login, struct Account* current_account,
+                struct Account* temp_account) {
   char found_line[512] = {'\0'};
-  int out = FindLineContainingText(file_name, login, found_line,
-                                   sizeof(found_line), current_account, temp_account);
+  int out =
+      FindLineContainingText(file_name, login, found_line, sizeof(found_line),
+                             current_account, temp_account);
   if (out >= 0) {
     return 0;
   }
@@ -454,15 +498,18 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
         break;
       case 1:
         sum = DisplayTransferMoney();
-        current_account->balance += 5;
-        ModifyUserInFile(file_name, data_separator, current_account,
-                         temp_account);
         break;
       case 2:
         sum = DisplayDepositMoney(y_max, x_max);
+        current_account->balance += sum;
+        ModifyUserInFile(file_name, data_separator, current_account,
+                         temp_account);
         break;
       case 3:
         sum = DisplayWithdrawMoney(y_max, x_max);
+        current_account->balance -= sum;
+        ModifyUserInFile(file_name, data_separator, current_account,
+                         temp_account);
         break;
       default:
         break;
@@ -491,21 +538,6 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
 }
 
 float DisplayTransferMoney() { return 0; }
-
-float DisplayDepositMoney(int y_max, int x_max) {
-  clear();
-  printw("Enter amount of money to deposit: ");
-
-  getch();
-  return 0;
-}
-
-float DisplayWithdrawMoney(int y_max, int x_max) {
-  clear();
-  printw("Enter amount of money to withdraw: ");
-  getch();
-  return 0;
-}
 
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
@@ -574,8 +606,8 @@ int main() {
     if (stage == 1) {
       if (choice == 0) {
         while (choice != 27) {
-          choice = InputMenu(log_in_text, sizeof(log_in_text), fields_text,
-                             y_max, x_max, 0);
+          choice = TextInputMenu(log_in_text, sizeof(log_in_text), fields_text,
+                                 y_max, x_max, 0);
           if (choice == 10) {
             if (!FindByLogin(file_name, fields_text[0], &current_account,
                              &temp_account)) {
@@ -586,8 +618,9 @@ int main() {
                   strlen(fields_text[1]) > 0) {  // Logged in user
                 printw("Correct!\nLoggin in...");
                 current_account = temp_account;
-                choice = DisplayMyAccount(&current_account, my_account_text,
-                                          sizeof(my_account_text), y_max, x_max, file_name, data_separator, &temp_account);
+                choice = DisplayMyAccount(
+                    &current_account, my_account_text, sizeof(my_account_text),
+                    y_max, x_max, file_name, data_separator, &temp_account);
               } else {
                 printw("Incorrect password!");
                 refresh();
@@ -606,8 +639,8 @@ int main() {
         char error_text[50];
         choice = 0;
         while (choice != 27) {
-          choice = InputMenu(sign_in_text, sizeof(sign_in_text), fields_text,
-                             y_max, x_max, flag);
+          choice = TextInputMenu(sign_in_text, sizeof(sign_in_text),
+                                 fields_text, y_max, x_max, flag);
           flag = 1;
 
           if (choice == 27) {
