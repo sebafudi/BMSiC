@@ -65,10 +65,10 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
       return highlight;
     }
     if (choice == 27) {
-      return 27;
+      return -1;
     }
   }
-  return 0;
+  return -1;
 }
 
 int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
@@ -106,11 +106,11 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
       return highlight;
     }
     if (choice == 27) {
-      return 27;
+      return -1;
     }
     refresh();
   }
-  return 0;
+  return -1;
 }
 
 int InitializeFiles(char* file_name) {
@@ -119,8 +119,9 @@ int InitializeFiles(char* file_name) {
   if (file != NULL) {
     fprintf(file, "BMSiC\n");
     fclose(file);
+    return 0;
   }
-  return 0;
+  return -1;
 }
 
 int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
@@ -189,11 +190,11 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
       return 10;
     }
     if (key_pressed == 27) {
-      return 27;
+      return -1;
     }
     refresh();
   }
-  return 0;
+  return -1;
 }
 
 float FloatInputMenu(char* text, int y_max, int x_max) {
@@ -223,7 +224,7 @@ float FloatInputMenu(char* text, int y_max, int x_max) {
     key_pressed = wgetch(stdscr);
   }
   curs_set(0);
-  number = atof(input);
+  number = (float)atof(input);
   return number;
 }
 
@@ -289,7 +290,7 @@ int SaveUser(char* file_name, char data_separator,
     fclose(file);
     return 0;
   }
-  return 1;
+  return -1;
 }
 
 int ParseUserFromLine(char* data, struct Account* current_account,
@@ -362,15 +363,15 @@ int FindLineContainingText(char* file_name, char* text, char* current_line,
 
 int GetLastId(char* file_name, char data_separator) {
   FILE* file;
+  long file_size;
+  char current_character;
+  int count = 0;
+  int end;
+  int start;
+  char last_id[16] = "";
+  int int_last_id = -1;
   fopen_s(&file, file_name, "r");
   if (file != NULL) {
-    long file_size;
-    char current_character;
-    int count = 0;
-    int end;
-    int start;
-    char last_id[16] = "";
-    int int_last_id = -1;
     fseek(file, 0L, SEEK_END);
     file_size = ftell(file);
     for (int i = 0; i < file_size; i++) {
@@ -412,10 +413,13 @@ int ModifyUserInFile(char* file_name, char data_separator,
   int lno = FindLineContainingText(file_name, account_to_modify->login,
                                    found_line, sizeof(found_line),
                                    account_to_modify, temp_account);
-
   int linectr = 0;
   char str[512];
   char* file_tmp_name = "bmsic_tmp_db.txt";
+
+  if (lno == -1) {
+    return -1;
+  }
   fopen_s(&file, file_name, "r");
   fopen_s(&file_temp, file_tmp_name, "w");
   if (file != NULL && file_temp != NULL) {
@@ -452,21 +456,21 @@ int ModifyUserInFile(char* file_name, char data_separator,
     fclose(file);
     fclose(file_temp);
     remove(file_name);
-    int a = rename(file_tmp_name, file_name);
+    if (!rename(file_tmp_name, file_name)) {
+      return -1;
+    }
     return 0;
   }
-  return 1;
+  return -1;
 }
 
 float DisplayDepositMoney(int y_max, int x_max) {
-  clear();
   char* text = "Enter amount of money to deposit";
   float sum = FloatInputMenu(text, y_max, x_max);
   return sum;
 }
 
 float DisplayWithdrawMoney(int y_max, int x_max) {
-  clear();
   char* text = "Enter amount of money to withdraw";
   float sum = FloatInputMenu(text, y_max, x_max);
   return sum;
@@ -480,8 +484,28 @@ int FindByLogin(char* file_name, char* login, struct Account* current_account,
   if (out >= 0) {
     return 0;
   }
-  return 1;
+  return -1;
 }
+
+int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
+  char first_line[128] = {'\0'};
+  char second_line[128] = {'\0'};
+  clear();
+  sprintf_s(first_line, sizeof(first_line), "Welcome %s!",
+            current_account->first_name);
+  mvprintw((y_max - 2) / 2, (x_max - (int)strlen(first_line)) / 2, "%s\n",
+           first_line);
+
+  sprintf_s(second_line, sizeof(second_line), "Your account balance: %.2f",
+            current_account->balance);
+  mvprintw((y_max - 2) / 2 + 1, (x_max - (int)strlen(second_line)) / 2, "%s\n",
+           second_line);
+  refresh();
+  getch();
+  return 0;
+}
+
+float DisplayTransferMoney() { return 0; }
 
 int DisplayMyAccount(struct Account* current_account, char** my_account_text,
                      unsigned int size, int y_max, int x_max, char* file_name,
@@ -489,10 +513,10 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
   int choice;
   float sum;
   choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
-  while (choice != 27) {
+  while (choice != -1) {
     switch (choice) {
       case 4:
-        return 27;
+        return -1;
       case 0:
         DisplayUserBalance(current_account, y_max, x_max);
         break;
@@ -516,28 +540,8 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
     }
     choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
   }
-  return 27;
+  return -1;
 }
-
-int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
-  clear();
-  char first_line[128] = {'\0'};
-  char second_line[128] = {'\0'};
-  sprintf_s(&first_line, sizeof(first_line), "Welcome %s!",
-            current_account->first_name);
-  mvprintw((y_max - 2) / 2, (x_max - strlen(first_line)) / 2, "%s\n",
-           first_line);
-
-  sprintf_s(&second_line, sizeof(second_line), "Your account balance: %.2f",
-            current_account->balance);
-  mvprintw((y_max - 2) / 2 + 1, (x_max - strlen(second_line)) / 2, "%s\n",
-           second_line);
-  refresh();
-  getch();
-  return 0;
-}
-
-float DisplayTransferMoney() { return 0; }
 
 int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
@@ -550,7 +554,9 @@ int main() {
   struct Account current_account;
   struct Account temp_account;
   int y_max, x_max;
+  int stage = 0;
   int choice = -1;
+  char error_text[50];
   FILE* file;
   char* file_name = "bmsic_db.txt";
   errno_t err;
@@ -568,7 +574,7 @@ int main() {
     } else {
       printf_s("Unable to create file.\nProgram will close.\n");
       system("PAUSE");
-      return 1;
+      return -1;
     }
     system("PAUSE");
   } else if (file != NULL) {
@@ -584,28 +590,21 @@ int main() {
   getmaxyx(stdscr, y_max, x_max);
   y_max = 21;
   x_max = y_max * 4;
-  // wresize(stdscr, yMax, xMax);
   resize_term(y_max, x_max);
-  // resize_window(stdscr, yMax, xMax);
-  printw("Hello BMSiC!\n");
-  printw("y_max: %d\nx_max: %d\n", y_max, x_max);
-  clear();
-  // getch();
-  int stage = 0;
   do {
     if (stage == 0) {
       choice = DisplayHorizontalMenu(text, sizeof(text), y_max, x_max);
       if (choice == 2) {
         SafelyClose();
       }
-      if (choice == 27) {
+      if (choice == -1) {
         SafelyClose();
       }
       stage = 1;
     }
     if (stage == 1) {
       if (choice == 0) {
-        while (choice != 27) {
+        while (choice != -1) {
           choice = TextInputMenu(log_in_text, sizeof(log_in_text), fields_text,
                                  y_max, x_max, 0);
           if (choice == 10) {
@@ -636,14 +635,13 @@ int main() {
         }
       } else if (choice == 1) {
         flag = 0;
-        char error_text[50];
         choice = 0;
-        while (choice != 27) {
+        while (choice != -1) {
           choice = TextInputMenu(sign_in_text, sizeof(sign_in_text),
                                  fields_text, y_max, x_max, flag);
           flag = 1;
 
-          if (choice == 27) {
+          if (choice == -1) {
             stage = 0;
             break;
           } else if (strlen(fields_text[0]) == 0) {
@@ -677,7 +675,7 @@ int main() {
                                     file_name, data_separator, &temp_account);
         }
       }
-      if (choice == 27) {
+      if (choice == -1) {
         stage = 0;
       }
     }
