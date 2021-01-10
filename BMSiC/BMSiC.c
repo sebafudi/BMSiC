@@ -154,6 +154,9 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
         printw("%s", fields_text[i]);
       }
     }
+    if (current_input == number_of_elements) wattron(stdscr, A_REVERSE);
+    mvprintw(number_of_elements, 2, "CONFIRM");
+    wattroff(stdscr, A_REVERSE);
     if (current_input < number_of_elements) {
       if (fields[current_input]) {
         mvprintw(current_input,
@@ -202,7 +205,6 @@ float FloatInputMenu(char* text, int y_max, int x_max) {
   float number = 0;
   char input[16] = {'\0'};
   clear();
-  mvprintw(y_max / 2, 5, "%s: ", text);
   curs_set(1);
   while (key_pressed != 10) {
     if (key_pressed >= 48 && key_pressed <= 57 || key_pressed == 46) {
@@ -220,8 +222,12 @@ float FloatInputMenu(char* text, int y_max, int x_max) {
       return -1;
     }
     clear();
-    mvprintw(y_max / 2, 5, "%s: %s", text, input);
+    mvprintw(y_max / 2, 5, "%s", "To confirm press ENTER, to cancel press ESC");
+    mvprintw(y_max / 2 - 1, 5, "%s: %s", text, input);
     key_pressed = wgetch(stdscr);
+    if (key_pressed == 10 && (strlen(input) == 0 || !strcmp(input, "."))) {
+      key_pressed = 0;
+    }
   }
   curs_set(0);
   number = (float)atof(input);
@@ -615,7 +621,6 @@ int main() {
                           temp_account.password) &&
                   strlen(fields_text[0]) > 0 &&
                   strlen(fields_text[1]) > 0) {  // Logged in user
-                printw("Correct!\nLoggin in...");
                 current_account = temp_account;
                 choice = DisplayMyAccount(
                     &current_account, my_account_text, sizeof(my_account_text),
