@@ -579,7 +579,7 @@ int main() {
   char* log_in_text[] = {"Login", "Password"};
   char* my_account_text[] = {"BALANCE", "TRANSACTIONS", "DEPOSIT", "WITHDRAW",
                              "LOG OUT"};
-  char** fields_text = calloc(10, sizeof(char*));
+  char** fields_text = NULL;
   char data_separator = 149;
   struct Account current_account;
   struct Account temp_account;
@@ -591,7 +591,6 @@ int main() {
   char* file_name = "bmsic_db.txt";
   errno_t err;
   bool flag = 0;
-  assert(fields_text);
 
   setlocale(LC_CTYPE, "Polish");
   srand((unsigned int)time(0));
@@ -634,6 +633,9 @@ int main() {
     }
     if (stage == 1) {
       if (choice == 0) {
+        fields_text =
+            calloc(sizeof(log_in_text) / sizeof(log_in_text[0]), sizeof(char*));
+        assert(fields_text);
         while (choice != -1) {
           choice = TextInputMenu(log_in_text, sizeof(log_in_text), fields_text,
                                  y_max, x_max, 0);
@@ -662,9 +664,17 @@ int main() {
             }
           }
         }
+        for (int i = 0; i < sizeof(log_in_text) / sizeof(log_in_text[0]); i++) {
+          free(fields_text[i]);
+        }
+        free(fields_text);
       } else if (choice == 1) {
         flag = 0;
         choice = 0;
+        fields_text = calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]),
+                             sizeof(char*));
+        assert(fields_text);
+        assert(fields_text);
         while (choice != -1) {
           choice = TextInputMenu(sign_in_text, sizeof(sign_in_text),
                                  fields_text, y_max, x_max, flag);
@@ -703,6 +713,11 @@ int main() {
                                     sizeof(my_account_text), y_max, x_max,
                                     file_name, data_separator, &temp_account);
         }
+        for (int i = 0; i < sizeof(sign_in_text) / sizeof(sign_in_text[0]);
+             i++) {
+          free(fields_text[i]);
+        }
+        free(fields_text);
       }
       if (choice == -1) {
         stage = 0;
