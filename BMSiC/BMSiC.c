@@ -551,15 +551,19 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
         break;
       case 2:
         sum = DisplayDepositMoney(y_max, x_max);
-        current_account->balance += sum;
-        ModifyUserInFile(file_name, data_separator, current_account,
-                         temp_account);
+        if (sum > 0) {
+          current_account->balance += sum;
+          ModifyUserInFile(file_name, data_separator, current_account,
+                           temp_account);
+        }
         break;
       case 3:
         sum = DisplayWithdrawMoney(y_max, x_max);
-        current_account->balance -= sum;
-        ModifyUserInFile(file_name, data_separator, current_account,
-                         temp_account);
+        if (sum > 0) {
+          current_account->balance -= sum;
+          ModifyUserInFile(file_name, data_separator, current_account,
+                           temp_account);
+        }
         break;
       default:
         break;
