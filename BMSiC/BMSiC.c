@@ -16,7 +16,7 @@ struct Account {
   char last_name[64];
   __time64_t date_created;
   char accout_type;
-  float balance;
+  long long int balance;
 };
 
 int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
@@ -200,10 +200,11 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
   return -1;
 }
 
-float FloatInputMenu(char* text, int y_max, int x_max) {
+long long int FloatInputMenu(char* text, int y_max, int x_max) {
   int key_pressed = 0;
-  float number = 0;
+  long long int number = 0;
   char input[16] = {'\0'};
+  size_t input_length = 0;
   clear();
   curs_set(1);
   while (key_pressed != 10) {
@@ -230,7 +231,19 @@ float FloatInputMenu(char* text, int y_max, int x_max) {
     }
   }
   curs_set(0);
-  number = (float)atof(input);
+  input_length = strlen(input);
+  if (input[input_length - 3] == '.') {
+    input[input_length - 3] = input[input_length - 2];
+    input[input_length - 2] = input[input_length - 1];
+    input[input_length - 1] = '\0';
+    number = atoll(input);
+  } else if (input[input_length - 2] == '.') {
+    input[input_length - 2] = input[input_length - 1];
+    input[input_length - 1] = '\0';
+    number = atoll(input) * 10;
+  } else {
+    number = atoll(input) * 100;
+  }
   return number;
 }
 
@@ -291,7 +304,7 @@ int SaveUser(char* file_name, char data_separator,
     fprintf(file, "%c", data_separator);
     fprintf(file, "%d", current_account->accout_type);
     fprintf(file, "%c", data_separator);
-    fprintf(file, "%f", current_account->balance);
+    fprintf(file, "%lld", current_account->balance);
     fprintf(file, "\n");
     fclose(file);
     return 0;
@@ -334,7 +347,7 @@ int ParseUserFromLine(char* data, struct Account* current_account,
   strcpy_s(temp_account->last_name, sizeof(temp_account->last_name), output[5]);
   temp_account->date_created = atoi(output[6]);
   temp_account->accout_type = atoi(output[7]);
-  temp_account->balance = (float)atof(output[8]);
+  temp_account->balance = atoll(output[8]);
   return 0;
 }
 
@@ -453,7 +466,7 @@ int ModifyUserInFile(char* file_name, char data_separator,
           fprintf(file_temp, "%c", data_separator);
           fprintf(file_temp, "%d", account_to_modify->accout_type);
           fprintf(file_temp, "%c", data_separator);
-          fprintf(file_temp, "%f", account_to_modify->balance);
+          fprintf(file_temp, "%lld", account_to_modify->balance);
           fprintf(file_temp, "\n");
         }
         linectr++;
@@ -470,15 +483,15 @@ int ModifyUserInFile(char* file_name, char data_separator,
   return -1;
 }
 
-float DisplayDepositMoney(int y_max, int x_max) {
+long long int DisplayDepositMoney(int y_max, int x_max) {
   char* text = "Enter amount of money to deposit";
-  float sum = FloatInputMenu(text, y_max, x_max);
+  long long int sum = FloatInputMenu(text, y_max, x_max);
   return sum;
 }
 
-float DisplayWithdrawMoney(int y_max, int x_max) {
+long long int DisplayWithdrawMoney(int y_max, int x_max) {
   char* text = "Enter amount of money to withdraw";
-  float sum = FloatInputMenu(text, y_max, x_max);
+  long long int sum = FloatInputMenu(text, y_max, x_max);
   return sum;
 }
 int FindByLogin(char* file_name, char* login, struct Account* current_account,
@@ -501,9 +514,16 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
             current_account->first_name);
   mvprintw((y_max - 2) / 2, (x_max - (int)strlen(first_line)) / 2, "%s\n",
            first_line);
-
-  sprintf_s(second_line, sizeof(second_line), "Your account balance: %.2f",
-            current_account->balance);
+  if (current_account->balance >= 0) {
+    sprintf_s(second_line, sizeof(second_line),
+              "Your account balance: %lld.%02lld",
+              current_account->balance / 100, current_account->balance % 100);
+  } else {
+    sprintf_s(second_line, sizeof(second_line),
+              "Your account balance: -%lld.%02lld",
+              llabs(current_account->balance) / 100,
+              llabs(current_account->balance) % 100);
+  }
   mvprintw((y_max - 2) / 2 + 1, (x_max - (int)strlen(second_line)) / 2, "%s\n",
            second_line);
   refresh();
@@ -511,13 +531,13 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
   return 0;
 }
 
-float DisplayTransferMoney() { return 0; }
+int DisplayTransferMoney() { return 0; }
 
 int DisplayMyAccount(struct Account* current_account, char** my_account_text,
                      unsigned int size, int y_max, int x_max, char* file_name,
                      char data_separator, struct Account* temp_account) {
   int choice;
-  float sum;
+  long long int sum;
   choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
   while (choice != -1) {
     switch (choice) {
@@ -527,7 +547,7 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
         DisplayUserBalance(current_account, y_max, x_max);
         break;
       case 1:
-        sum = DisplayTransferMoney();
+        DisplayTransferMoney();
         break;
       case 2:
         sum = DisplayDepositMoney(y_max, x_max);
