@@ -269,7 +269,8 @@ int CreateUser(struct Account* current_account, char** fields_text,
                size_t count, int last_id, char* file_name,
                struct Account* temp_account) {
   char random_number[27] = {'\0'};
-  GenerateAccountNumber(random_number, sizeof(random_number), file_name, temp_account);
+  GenerateAccountNumber(random_number, sizeof(random_number), file_name,
+                        temp_account);
   current_account->account_id = last_id + 1;
   strcpy_s(current_account->login, sizeof(current_account->login),
            fields_text[0]);
@@ -553,18 +554,19 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
 int DisplayTransferMoney(char* file_name, char data_separator,
                          struct Account* current_account,
                          struct Account* temp_account, int y_max, int x_max) {
-  char* sign_in_text[] = {"Login", "Account number"};
+  char* transfer_menu_text[] = {"Login", "Account number"};
   char* transfer_text = "Amount of money to transfer";
   char** fields_text = NULL;
   int choice = 0;
   long long int sum = 0;
   struct Account account_transfer_to;
   fields_text =
-      calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]), sizeof(char*));
+      calloc(sizeof(transfer_menu_text) / sizeof(transfer_menu_text[0]),
+             sizeof(char*));
   assert(fields_text);
   while (choice != -1) {
-    choice = TextInputMenu(sign_in_text, sizeof(sign_in_text), fields_text,
-                           y_max, x_max, 0);
+    choice = TextInputMenu(transfer_menu_text, sizeof(transfer_menu_text),
+                           fields_text, y_max, x_max, 0);
     if (choice == 10) {
       if (strlen(fields_text[0]) > 0) {
         if (!FindByLogin(file_name, fields_text[0], temp_account)) {
@@ -634,6 +636,10 @@ int DisplayTransferMoney(char* file_name, char data_separator,
           getch();
         }
       }
+    }
+    for (int i = 0;
+         i < sizeof(transfer_menu_text) / sizeof(transfer_menu_text[0]); i++) {
+      free(fields_text[i]);
     }
   }
   free(fields_text);
@@ -820,7 +826,8 @@ int main() {
         if (choice == 10) {  // Registered user
           current_account = temp_account;
           CreateUser(&current_account, fields_text, sizeof(fields_text),
-                     GetLastId(file_name, data_separator), file_name, &temp_account);
+                     GetLastId(file_name, data_separator), file_name,
+                     &temp_account);
           SaveUser(file_name, data_separator, &current_account);
           choice = DisplayMyAccount(&current_account, my_account_text,
                                     sizeof(my_account_text), y_max, x_max,
