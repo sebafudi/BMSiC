@@ -19,6 +19,13 @@ struct Account {
   long long int balance;
 };
 
+long long djb2_hash(unsigned char* str) {
+  unsigned long hash = 5381;
+  int c;
+  while (c = *str++) hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+  return hash;
+}
+
 int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
                           int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
@@ -571,7 +578,7 @@ int DisplayTransferMoney(char* file_name, char data_separator,
       if (strlen(fields_text[0]) > 0) {
         if (!FindByLogin(file_name, fields_text[0], temp_account)) {
           account_transfer_to = *temp_account;
-          if (strcmp(current_account->login, &account_transfer_to.login)) {
+          if (strcmp(current_account->login, account_transfer_to.login)) {
             sum = FloatInputMenu(transfer_text, y_max, x_max);
             if (sum >= 0) {
               if (sum <= current_account->balance) {
@@ -605,7 +612,7 @@ int DisplayTransferMoney(char* file_name, char data_separator,
         if (!FindByAccNo(file_name, fields_text[1], temp_account)) {
           account_transfer_to = *temp_account;
           if (strcmp(current_account->account_number,
-                     &account_transfer_to.account_number)) {
+                     account_transfer_to.account_number)) {
             sum = FloatInputMenu(transfer_text, y_max, x_max);
             if (sum >= 0) {
               if (sum <= current_account->balance) {
@@ -763,6 +770,7 @@ int main() {
           if (choice == 10) {
             if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
               clear();
+              sprintf_s(fields_text[1], 64, "%lld", djb2_hash(fields_text[1]));
               if (!strcmp(fields_text[1],
                           temp_account.password) &&
                   strlen(fields_text[0]) > 0 &&
@@ -825,6 +833,7 @@ int main() {
         }
         if (choice == 10) {  // Registered user
           current_account = temp_account;
+          sprintf_s(fields_text[1], 64, "%lld", djb2_hash(fields_text[1]));
           CreateUser(&current_account, fields_text, sizeof(fields_text),
                      GetLastId(file_name, data_separator), file_name,
                      &temp_account);
