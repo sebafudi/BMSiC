@@ -19,6 +19,201 @@ struct Account {
   long long int balance;
 };
 
+int DisplayMyAccount(struct Account* current_account, char** my_account_text,
+                     unsigned int size, int y_max, int x_max, char* file_name,
+                     char data_separator, struct Account* temp_account);
+int DisplayTransferMoney(char* file_name, char data_separator,
+                         struct Account* current_account,
+                         struct Account* temp_account, int y_max, int x_max);
+int DisplayUserBalance(struct Account* current_account, int y_max, int x_max);
+int FindByAccNo(char* file_name, char* acc_number,
+                struct Account* temp_account);
+int FindByLogin(char* file_name, char* login, struct Account* temp_account);
+long long int DisplayWithdrawMoney(int y_max, int x_max);
+long long int DisplayDepositMoney(int y_max, int x_max);
+int ModifyUserInFile(char* file_name, char data_separator,
+                     struct Account* account_to_modify,
+                     struct Account* temp_account);
+int GetLastId(char* file_name, char data_separator);
+int FindLineContainingText(char* file_name, char* text, char* current_line,
+                           unsigned int current_line_size,
+                           struct Account* temp_account, int field);
+int ParseUserFromLine(char* data, struct Account* temp_account);
+int SaveUser(char* file_name, char data_separator,
+             struct Account* current_account);
+int CreateUser(struct Account* current_account, char** fields_text,
+               size_t count, int last_id, char* file_name,
+               struct Account* temp_account);
+void GenerateAccountNumber(char* random_number, size_t size, char* file_name,
+                           struct Account* temp_account);
+void SafelyClose();
+long long int FloatInputMenu(char* text, int y_max, int x_max);
+int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
+                  int x_max, bool already_set);
+int InitializeFiles(char* file_name);
+int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
+                        int x_max);
+int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
+                          int x_max);
+long long djb2_hash(unsigned char* str);
+
+int main() {
+  char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
+  char* sign_in_text[] = {"Login", "Password", "First Name", "Last Name"};
+  char* log_in_text[] = {"Login", "Password"};
+  char* my_account_text[] = {"BALANCE",
+                             "TRANSFER MONEY (login or account number)",
+                             "DEPOSIT", "WITHDRAW", "LOG OUT"};
+  char** fields_text = NULL;
+  char data_separator = 149;
+  struct Account current_account;
+  struct Account temp_account;
+  int y_max, x_max;
+  int stage = 0;
+  int choice = -1;
+  char error_text[50];
+  FILE* file;
+  char* file_name = "bmsic_db.txt";
+  errno_t err;
+  bool flag = 0;
+
+  setlocale(LC_CTYPE, "Polish");
+  srand((unsigned int)time(0));
+
+  err = fopen_s(&file, file_name, "r");
+  if (err != 0) {
+    printf_s("Detected first run, creating files...\n");
+    if (InitializeFiles(file_name) == 0) {
+      printf_s("Successfully created files!\n");
+    } else {
+      printf_s("Unable to create file.\nProgram will close.\n");
+      system("PAUSE");
+      return -1;
+    }
+    system("PAUSE");
+  } else if (file != NULL) {
+    fclose(file);
+  }
+
+  initscr();
+  noecho();
+  cbreak();
+  curs_set(0);
+  keypad(stdscr, 1);
+
+  getmaxyx(stdscr, y_max, x_max);
+  y_max = 21;
+  x_max = y_max * 4;
+  resize_term(y_max, x_max);
+  do {
+    if (stage == 0) {
+      choice = DisplayHorizontalMenu(text, sizeof(text), y_max, x_max);
+      if (choice == 2) {
+        SafelyClose();
+      }
+      if (choice == -1) {
+        SafelyClose();
+      }
+      stage = 1;
+    }
+    if (stage == 1) {
+      if (choice == 0) {
+        fields_text =
+            calloc(sizeof(log_in_text) / sizeof(log_in_text[0]), sizeof(char*));
+        assert(fields_text);
+        while (choice != -1) {
+          choice = TextInputMenu(log_in_text, sizeof(log_in_text), fields_text,
+                                 y_max, x_max, 0);
+          if (choice == 10) {
+            if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
+              clear();
+              sprintf_s(fields_text[1], 64, "%lld", djb2_hash(fields_text[1]));
+              if (!strcmp(fields_text[1],
+                          temp_account.password) &&
+                  strlen(fields_text[0]) > 0 &&
+                  strlen(fields_text[1]) > 0) {  // Logged in user
+                current_account = temp_account;
+                choice = DisplayMyAccount(
+                    &current_account, my_account_text, sizeof(my_account_text),
+                    y_max, x_max, file_name, data_separator, &temp_account);
+              } else {
+                printw("Incorrect password!");
+                refresh();
+                getch();
+              }
+            } else {
+              clear();
+              printw("Incorrect password!");
+              refresh();
+              getch();
+            }
+          }
+        }
+        for (int i = 0; i < sizeof(log_in_text) / sizeof(log_in_text[0]); i++) {
+          free(fields_text[i]);
+        }
+        free(fields_text);
+      } else if (choice == 1) {
+        flag = 0;
+        choice = 0;
+        fields_text = calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]),
+                             sizeof(char*));
+        assert(fields_text);
+        assert(fields_text);
+        while (choice != -1) {
+          choice = TextInputMenu(sign_in_text, sizeof(sign_in_text),
+                                 fields_text, y_max, x_max, flag);
+          flag = 1;
+
+          if (choice == -1) {
+            stage = 0;
+            break;
+          } else if (strlen(fields_text[0]) == 0) {
+            strcpy_s(error_text, sizeof(error_text), "Login cannot be empty!");
+          } else if (strlen(fields_text[1]) < 8) {
+            strcpy_s(error_text, sizeof(error_text),
+                     "Password must have 8 or more characters!");
+          } else if (strlen(fields_text[2]) == 0) {
+            strcpy_s(error_text, sizeof(error_text),
+                     "First Name cannot be empty!");
+          } else if (strlen(fields_text[3]) == 0) {
+            strcpy_s(error_text, sizeof(error_text),
+                     "Last Name cannot be empty!");
+          } else if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
+            strcpy_s(error_text, sizeof(error_text), "Login already exists");
+          } else if (choice != 27) {
+            break;
+          }
+          clear();
+          printw("%s", error_text);
+          getch();
+        }
+        if (choice == 10) {  // Registered user
+          current_account = temp_account;
+          sprintf_s(fields_text[1], 64, "%lld", djb2_hash(fields_text[1]));
+          CreateUser(&current_account, fields_text, sizeof(fields_text),
+                     GetLastId(file_name, data_separator), file_name,
+                     &temp_account);
+          SaveUser(file_name, data_separator, &current_account);
+          choice = DisplayMyAccount(&current_account, my_account_text,
+                                    sizeof(my_account_text), y_max, x_max,
+                                    file_name, data_separator, &temp_account);
+        }
+        for (int i = 0; i < sizeof(sign_in_text) / sizeof(sign_in_text[0]);
+             i++) {
+          free(fields_text[i]);
+        }
+        free(fields_text);
+      }
+      if (choice == -1) {
+        stage = 0;
+      }
+    }
+  } while (choice != 10);
+  SafelyClose();
+  return 0;
+}
+
 long long djb2_hash(unsigned char* str) {
   unsigned long hash = 5381;
   int c;
@@ -698,161 +893,4 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
     choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);
   }
   return -1;
-}
-
-int main() {
-  char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
-  char* sign_in_text[] = {"Login", "Password", "First Name", "Last Name"};
-  char* log_in_text[] = {"Login", "Password"};
-  char* my_account_text[] = {"BALANCE",
-                             "TRANSFER MONEY (login or account number)",
-                             "DEPOSIT", "WITHDRAW", "LOG OUT"};
-  char** fields_text = NULL;
-  char data_separator = 149;
-  struct Account current_account;
-  struct Account temp_account;
-  int y_max, x_max;
-  int stage = 0;
-  int choice = -1;
-  char error_text[50];
-  FILE* file;
-  char* file_name = "bmsic_db.txt";
-  errno_t err;
-  bool flag = 0;
-
-  setlocale(LC_CTYPE, "Polish");
-  srand((unsigned int)time(0));
-
-  err = fopen_s(&file, file_name, "r");
-  if (err != 0) {
-    printf_s("Detected first run, creating files...\n");
-    if (InitializeFiles(file_name) == 0) {
-      printf_s("Successfully created files!\n");
-    } else {
-      printf_s("Unable to create file.\nProgram will close.\n");
-      system("PAUSE");
-      return -1;
-    }
-    system("PAUSE");
-  } else if (file != NULL) {
-    fclose(file);
-  }
-
-  initscr();
-  noecho();
-  cbreak();
-  curs_set(0);
-  keypad(stdscr, 1);
-
-  getmaxyx(stdscr, y_max, x_max);
-  y_max = 21;
-  x_max = y_max * 4;
-  resize_term(y_max, x_max);
-  do {
-    if (stage == 0) {
-      choice = DisplayHorizontalMenu(text, sizeof(text), y_max, x_max);
-      if (choice == 2) {
-        SafelyClose();
-      }
-      if (choice == -1) {
-        SafelyClose();
-      }
-      stage = 1;
-    }
-    if (stage == 1) {
-      if (choice == 0) {
-        fields_text =
-            calloc(sizeof(log_in_text) / sizeof(log_in_text[0]), sizeof(char*));
-        assert(fields_text);
-        while (choice != -1) {
-          choice = TextInputMenu(log_in_text, sizeof(log_in_text), fields_text,
-                                 y_max, x_max, 0);
-          if (choice == 10) {
-            if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
-              clear();
-              sprintf_s(fields_text[1], 64, "%lld", djb2_hash(fields_text[1]));
-              if (!strcmp(fields_text[1],
-                          temp_account.password) &&
-                  strlen(fields_text[0]) > 0 &&
-                  strlen(fields_text[1]) > 0) {  // Logged in user
-                current_account = temp_account;
-                choice = DisplayMyAccount(
-                    &current_account, my_account_text, sizeof(my_account_text),
-                    y_max, x_max, file_name, data_separator, &temp_account);
-              } else {
-                printw("Incorrect password!");
-                refresh();
-                getch();
-              }
-            } else {
-              clear();
-              printw("Incorrect password!");
-              refresh();
-              getch();
-            }
-          }
-        }
-        for (int i = 0; i < sizeof(log_in_text) / sizeof(log_in_text[0]); i++) {
-          free(fields_text[i]);
-        }
-        free(fields_text);
-      } else if (choice == 1) {
-        flag = 0;
-        choice = 0;
-        fields_text = calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]),
-                             sizeof(char*));
-        assert(fields_text);
-        assert(fields_text);
-        while (choice != -1) {
-          choice = TextInputMenu(sign_in_text, sizeof(sign_in_text),
-                                 fields_text, y_max, x_max, flag);
-          flag = 1;
-
-          if (choice == -1) {
-            stage = 0;
-            break;
-          } else if (strlen(fields_text[0]) == 0) {
-            strcpy_s(error_text, sizeof(error_text), "Login cannot be empty!");
-          } else if (strlen(fields_text[1]) < 8) {
-            strcpy_s(error_text, sizeof(error_text),
-                     "Password must have 8 or more characters!");
-          } else if (strlen(fields_text[2]) == 0) {
-            strcpy_s(error_text, sizeof(error_text),
-                     "First Name cannot be empty!");
-          } else if (strlen(fields_text[3]) == 0) {
-            strcpy_s(error_text, sizeof(error_text),
-                     "Last Name cannot be empty!");
-          } else if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
-            strcpy_s(error_text, sizeof(error_text), "Login already exists");
-          } else if (choice != 27) {
-            break;
-          }
-          clear();
-          printw("%s", error_text);
-          getch();
-        }
-        if (choice == 10) {  // Registered user
-          current_account = temp_account;
-          sprintf_s(fields_text[1], 64, "%lld", djb2_hash(fields_text[1]));
-          CreateUser(&current_account, fields_text, sizeof(fields_text),
-                     GetLastId(file_name, data_separator), file_name,
-                     &temp_account);
-          SaveUser(file_name, data_separator, &current_account);
-          choice = DisplayMyAccount(&current_account, my_account_text,
-                                    sizeof(my_account_text), y_max, x_max,
-                                    file_name, data_separator, &temp_account);
-        }
-        for (int i = 0; i < sizeof(sign_in_text) / sizeof(sign_in_text[0]);
-             i++) {
-          free(fields_text[i]);
-        }
-        free(fields_text);
-      }
-      if (choice == -1) {
-        stage = 0;
-      }
-    }
-  } while (choice != 10);
-  SafelyClose();
-  return 0;
 }
