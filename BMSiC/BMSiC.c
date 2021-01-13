@@ -312,8 +312,7 @@ int SaveUser(char* file_name, char data_separator,
   return -1;
 }
 
-int ParseUserFromLine(char* data, struct Account* current_account,
-                      struct Account* temp_account) {
+int ParseUserFromLine(char* data, struct Account* temp_account) {
   const int LINE_SIZE = 512;
   const int MAX_FIELDS = 16;
   char output[16][512] = {'\0'};
@@ -353,8 +352,7 @@ int ParseUserFromLine(char* data, struct Account* current_account,
 
 int FindLineContainingText(char* file_name, char* text, char* current_line,
                            unsigned int current_line_size,
-                           struct Account* current_account,
-                           struct Account* temp_account) {
+                           struct Account* temp_account, int field) {
   FILE* file;
   int line_num = 0;
   int find_result = 0;
@@ -362,10 +360,17 @@ int FindLineContainingText(char* file_name, char* text, char* current_line,
   if (file != NULL) {
     while (fgets(current_line, current_line_size, file) != NULL) {
       if ((strstr(current_line, text)) != NULL) {
-        ParseUserFromLine(current_line, current_account, temp_account);
-        if (!strcmp(text, temp_account->login)) {
-          find_result++;
-          break;
+        ParseUserFromLine(current_line, temp_account);
+        if (field == 1) {
+          if (!strcmp(text, temp_account->account_number)) {
+            find_result++;
+            break;
+          }
+        } else if (field == 2) {
+          if (!strcmp(text, temp_account->login)) {
+            find_result++;
+            break;
+          }
         }
       }
       line_num++;
@@ -429,9 +434,9 @@ int ModifyUserInFile(char* file_name, char data_separator,
   FILE* file;
   FILE* file_temp;
   char found_line[512] = {'\0'};
-  int lno = FindLineContainingText(file_name, account_to_modify->login,
-                                   found_line, sizeof(found_line),
-                                   account_to_modify, temp_account);
+  int lno =
+      FindLineContainingText(file_name, account_to_modify->login, found_line,
+                             sizeof(found_line), temp_account, 2);
   int linectr = 0;
   char str[512];
   char* file_tmp_name = "bmsic_tmp_db.txt";
@@ -494,12 +499,20 @@ long long int DisplayWithdrawMoney(int y_max, int x_max) {
   long long int sum = FloatInputMenu(text, y_max, x_max);
   return sum;
 }
-int FindByLogin(char* file_name, char* login, struct Account* current_account,
+int FindByLogin(char* file_name, char* login, struct Account* temp_account) {
+  char found_line[512] = {'\0'};
+  int out = FindLineContainingText(file_name, login, found_line,
+                                   sizeof(found_line), temp_account, 2);
+  if (out >= 0) {
+    return 0;
+  }
+  return -1;
+}
+int FindByAccNo(char* file_name, char* acc_number,
                 struct Account* temp_account) {
   char found_line[512] = {'\0'};
-  int out =
-      FindLineContainingText(file_name, login, found_line, sizeof(found_line),
-                             current_account, temp_account);
+  int out = FindLineContainingText(file_name, acc_number, found_line,
+                                   sizeof(found_line), temp_account, 1);
   if (out >= 0) {
     return 0;
   }
@@ -531,7 +544,95 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
   return 0;
 }
 
-int DisplayTransferMoney() { return 0; }
+int DisplayTransferMoney(char* file_name, char data_separator,
+                         struct Account* current_account,
+                         struct Account* temp_account, int y_max, int x_max) {
+  char* sign_in_text[] = {"Login", "Account number"};
+  char* transfer_text = "Amount of money to transfer";
+  char** fields_text = NULL;
+  int choice = 0;
+  long long int sum = 0;
+  struct Account account_transfer_to;
+  fields_text =
+      calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]), sizeof(char*));
+  assert(fields_text);
+  while (choice != -1) {
+    choice = TextInputMenu(sign_in_text, sizeof(sign_in_text), fields_text,
+                           y_max, x_max, 0);
+    if (choice == 10) {
+      if (strlen(fields_text[0]) > 0) {
+        if (!FindByLogin(file_name, fields_text[0], temp_account)) {
+          account_transfer_to = *temp_account;
+          if (strcmp(current_account->login, &account_transfer_to.login)) {
+            sum = FloatInputMenu(transfer_text, y_max, x_max);
+            if (sum >= 0) {
+              if (sum <= current_account->balance) {
+                current_account->balance -= sum;
+                account_transfer_to.balance += sum;
+                ModifyUserInFile(file_name, data_separator, current_account,
+                                 temp_account);
+                ModifyUserInFile(file_name, data_separator,
+                                 &account_transfer_to, temp_account);
+                clear();
+                printw("Transfer completed!");
+                getch();
+                choice = -1;
+              } else {
+                clear();
+                printw("Insufficient balance!");
+                getch();
+              }
+            }
+          } else {
+            clear();
+            printw("You cannot transfer money to Yourself!");
+            getch();
+          }
+        } else {
+          clear();
+          printw("User not found!");
+          getch();
+        }
+      } else if (strlen(fields_text[1]) > 0) {
+        if (!FindByAccNo(file_name, fields_text[1], temp_account)) {
+          account_transfer_to = *temp_account;
+          if (strcmp(current_account->account_number,
+                     &account_transfer_to.account_number)) {
+            sum = FloatInputMenu(transfer_text, y_max, x_max);
+            if (sum >= 0) {
+              if (sum <= current_account->balance) {
+                current_account->balance -= sum;
+                account_transfer_to.balance += sum;
+                ModifyUserInFile(file_name, data_separator, current_account,
+                                 temp_account);
+                ModifyUserInFile(file_name, data_separator,
+                                 &account_transfer_to, temp_account);
+                clear();
+                printw("Transfer completed!");
+                getch();
+                choice = -1;
+              } else {
+                clear();
+                printw("Insufficient balance!");
+                getch();
+              }
+            }
+          } else {
+            clear();
+            printw("You cannot transfer money to Yourself!");
+            getch();
+          }
+        } else {
+          clear();
+          printw("User not found!");
+          getch();
+        }
+      }
+    }
+  }
+  free(fields_text);
+  return 0;
+}
 
 int DisplayMyAccount(struct Account* current_account, char** my_account_text,
                      unsigned int size, int y_max, int x_max, char* file_name,
@@ -547,7 +648,8 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
         DisplayUserBalance(current_account, y_max, x_max);
         break;
       case 1:
-        DisplayTransferMoney();
+        DisplayTransferMoney(file_name, data_separator, current_account,
+                             temp_account, y_max, x_max);
         break;
       case 2:
         sum = DisplayDepositMoney(y_max, x_max);
@@ -561,9 +663,9 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
         sum = DisplayWithdrawMoney(y_max, x_max);
         if (sum > 0) {
           if (sum <= current_account->balance) {
-          current_account->balance -= sum;
-          ModifyUserInFile(file_name, data_separator, current_account,
-                           temp_account);
+            current_account->balance -= sum;
+            ModifyUserInFile(file_name, data_separator, current_account,
+                             temp_account);
           } else {
             clear();
             printw("Insufficient balance");
@@ -583,8 +685,9 @@ int main() {
   char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
   char* sign_in_text[] = {"Login", "Password", "First Name", "Last Name"};
   char* log_in_text[] = {"Login", "Password"};
-  char* my_account_text[] = {"BALANCE", "TRANSACTIONS", "DEPOSIT", "WITHDRAW",
-                             "LOG OUT"};
+  char* my_account_text[] = {"BALANCE",
+                             "TRANSFER MONEY (login or account number)",
+                             "DEPOSIT", "WITHDRAW", "LOG OUT"};
   char** fields_text = NULL;
   char data_separator = 149;
   struct Account current_account;
@@ -646,8 +749,7 @@ int main() {
           choice = TextInputMenu(log_in_text, sizeof(log_in_text), fields_text,
                                  y_max, x_max, 0);
           if (choice == 10) {
-            if (!FindByLogin(file_name, fields_text[0], &current_account,
-                             &temp_account)) {
+            if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
               clear();
               if (!strcmp(fields_text[1],
                           temp_account.password) &&
@@ -700,8 +802,7 @@ int main() {
           } else if (strlen(fields_text[3]) == 0) {
             strcpy_s(error_text, sizeof(error_text),
                      "Last Name cannot be empty!");
-          } else if (!FindByLogin(file_name, fields_text[0], &current_account,
-                                  &temp_account)) {
+          } else if (!FindByLogin(file_name, fields_text[0], &temp_account)) {
             strcpy_s(error_text, sizeof(error_text), "Login already exists");
           } else if (choice != 27) {
             break;
