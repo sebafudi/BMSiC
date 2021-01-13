@@ -255,17 +255,21 @@ void SafelyClose() {
   exit(0);
 }
 
-void GenerateAccountNumber(char* random_number, size_t size) {
-  for (int i = 0; i < size - 1; i++) {
-    random_number[i] = rand() % 10 + '0';
-    random_number[i + 1] = '\0';
-  }
+void GenerateAccountNumber(char* random_number, size_t size, char* file_name,
+                           struct Account* temp_account) {
+  do {
+    for (int i = 0; i < size - 1; i++) {
+      random_number[i] = rand() % 10 + '0';
+      random_number[i + 1] = '\0';
+    }
+  } while (FindByAccNo(file_name, random_number, temp_account) >= 0);
 }
 
 int CreateUser(struct Account* current_account, char** fields_text,
-               size_t count, int last_id) {
+               size_t count, int last_id, char* file_name,
+               struct Account* temp_account) {
   char random_number[27] = {'\0'};
-  GenerateAccountNumber(random_number, sizeof(random_number));
+  GenerateAccountNumber(random_number, sizeof(random_number), file_name, temp_account);
   current_account->account_id = last_id + 1;
   strcpy_s(current_account->login, sizeof(current_account->login),
            fields_text[0]);
@@ -499,6 +503,7 @@ long long int DisplayWithdrawMoney(int y_max, int x_max) {
   long long int sum = FloatInputMenu(text, y_max, x_max);
   return sum;
 }
+
 int FindByLogin(char* file_name, char* login, struct Account* temp_account) {
   char found_line[512] = {'\0'};
   int out = FindLineContainingText(file_name, login, found_line,
@@ -508,6 +513,7 @@ int FindByLogin(char* file_name, char* login, struct Account* temp_account) {
   }
   return -1;
 }
+
 int FindByAccNo(char* file_name, char* acc_number,
                 struct Account* temp_account) {
   char found_line[512] = {'\0'};
@@ -814,7 +820,7 @@ int main() {
         if (choice == 10) {  // Registered user
           current_account = temp_account;
           CreateUser(&current_account, fields_text, sizeof(fields_text),
-                     GetLastId(file_name, data_separator));
+                     GetLastId(file_name, data_separator), file_name, &temp_account);
           SaveUser(file_name, data_separator, &current_account);
           choice = DisplayMyAccount(&current_account, my_account_text,
                                     sizeof(my_account_text), y_max, x_max,
