@@ -560,9 +560,15 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
       case 3:
         sum = DisplayWithdrawMoney(y_max, x_max);
         if (sum > 0) {
+          if (sum <= current_account->balance) {
           current_account->balance -= sum;
           ModifyUserInFile(file_name, data_separator, current_account,
                            temp_account);
+          } else {
+            clear();
+            printw("Insufficient balance");
+            getch();
+          }
         }
         break;
       default:
