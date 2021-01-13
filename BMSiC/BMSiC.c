@@ -731,10 +731,11 @@ int FindByAccNo(char* file_name, char* acc_number,
 int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
   char first_line[128] = {'\0'};
   char second_line[128] = {'\0'};
+  char third_line[128] = {'\0'};
   clear();
   sprintf_s(first_line, sizeof(first_line), "Welcome %s!",
             current_account->first_name);
-  mvprintw((y_max - 2) / 2, (x_max - (int)strlen(first_line)) / 2, "%s\n",
+  mvprintw((y_max - 2) / 2 -1, (x_max - (int)strlen(first_line)) / 2, "%s\n",
            first_line);
   if (current_account->balance >= 0) {
     sprintf_s(second_line, sizeof(second_line),
@@ -746,8 +747,12 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
               llabs(current_account->balance) / 100,
               llabs(current_account->balance) % 100);
   }
-  mvprintw((y_max - 2) / 2 + 1, (x_max - (int)strlen(second_line)) / 2, "%s\n",
+  mvprintw((y_max - 2) / 2, (x_max - (int)strlen(second_line)) / 2, "%s\n",
            second_line);
+  sprintf_s(third_line, sizeof(third_line), "Your account number is %s",
+            current_account->account_number);
+  mvprintw((y_max - 2) / 2 + 1, (x_max - (int)strlen(third_line)) / 2, "%s\n",
+           third_line);
   refresh();
   getch();
   return 0;
