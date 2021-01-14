@@ -159,7 +159,6 @@ int main() {
         fields_text = calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]),
                              sizeof(char*));
         assert(fields_text);
-        assert(fields_text);
         while (choice != -1) {
           choice = TextInputMenu(sign_in_text, sizeof(sign_in_text),
                                  fields_text, y_max, x_max, flag);
@@ -231,7 +230,7 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   int highlight = 0;
   div_t padding;
   curs_set(0);
-  for (size_t i = 0; i < number_of_elements; i++) {
+  for (int i = 0; i < number_of_elements; i++) {
     total_text_size += (int)strlen(choices[i]);
   }
   padding = div((x_max - total_text_size), (number_of_elements + 1));
@@ -349,7 +348,7 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
       }
       printw("%s: ", fields[i]);
       if (fields[i] == "Password") {
-        for (int j = 0; j < strlen(fields_text[i]); j++) {
+        for (size_t j = 0; j < strlen(fields_text[i]); j++) {
           printw("*");
         }
       } else {
@@ -372,7 +371,7 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
     }
     key_pressed = wgetch(stdscr);
     if (current_input < number_of_elements) {
-      if (key_pressed >= 32 && key_pressed <= 126) {
+      if (key_pressed >= 33 && key_pressed <= 126) {
         int len = (int)strlen(fields_text[current_input]);
         if (len < 63) {
           mvprintw(current_input, len + 4, "");
@@ -385,7 +384,8 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
             '\0';
       }
     }
-    if (key_pressed == 9 || key_pressed == 258 || key_pressed == 10) {
+    if ((key_pressed == 9 || key_pressed == 258 || key_pressed == 10) &&
+        current_input < number_of_elements) {
       current_input++;
     }
     if ((key_pressed == 351 || key_pressed == 259) && current_input > 0) {
@@ -460,7 +460,7 @@ void SafelyClose() {
 void GenerateAccountNumber(char* random_number, size_t size, char* file_name,
                            struct Account* temp_account) {
   do {
-    for (int i = 0; i < size - 1; i++) {
+    for (size_t i = 0; i < size - 1; i++) {
       random_number[i] = rand() % 10 + '0';
       random_number[i + 1] = '\0';
     }
@@ -735,7 +735,7 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
   clear();
   sprintf_s(first_line, sizeof(first_line), "Welcome %s!",
             current_account->first_name);
-  mvprintw((y_max - 2) / 2 -1, (x_max - (int)strlen(first_line)) / 2, "%s\n",
+  mvprintw((y_max - 2) / 2 - 1, (x_max - (int)strlen(first_line)) / 2, "%s\n",
            first_line);
   if (current_account->balance >= 0) {
     sprintf_s(second_line, sizeof(second_line),
