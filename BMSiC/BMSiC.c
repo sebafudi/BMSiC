@@ -387,12 +387,11 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
     if ((key_pressed == 9 || key_pressed == 258 || key_pressed == 10) &&
         current_input < number_of_elements) {
       current_input++;
+    } else if (current_input == number_of_elements && key_pressed == 10) {
+      return 10;
     }
     if ((key_pressed == 351 || key_pressed == 259) && current_input > 0) {
       current_input--;
-    }
-    if (current_input == number_of_elements + 1 && key_pressed == 10) {
-      return 10;
     }
     if (key_pressed == 27) {
       return -1;
