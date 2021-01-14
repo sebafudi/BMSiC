@@ -781,6 +781,7 @@ int DisplayTransferMoney(char* file_name, char data_separator,
           if (strcmp(current_account->login, account_transfer_to.login)) {
             sum = FloatInputMenu(transfer_text, y_max, x_max);
             if (sum >= 0) {
+              FindByLogin(file_name, current_account->login, current_account);
               if (sum <= current_account->balance) {
                 current_account->balance -= sum;
                 account_transfer_to.balance += sum;
@@ -815,6 +816,7 @@ int DisplayTransferMoney(char* file_name, char data_separator,
                      account_transfer_to.account_number)) {
             sum = FloatInputMenu(transfer_text, y_max, x_max);
             if (sum >= 0) {
+              FindByLogin(file_name, current_account->login, current_account);
               if (sum <= current_account->balance) {
                 current_account->balance -= sum;
                 account_transfer_to.balance += sum;
@@ -864,6 +866,7 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
       case 4:
         return -1;
       case 0:
+        FindByLogin(file_name, current_account->login, current_account);
         DisplayUserBalance(current_account, y_max, x_max);
         break;
       case 1:
@@ -881,6 +884,7 @@ int DisplayMyAccount(struct Account* current_account, char** my_account_text,
       case 3:
         sum = DisplayWithdrawMoney(y_max, x_max);
         if (sum > 0) {
+          FindByLogin(file_name, current_account->login, current_account);
           if (sum <= current_account->balance) {
             current_account->balance -= sum;
             ModifyUserInFile(file_name, data_separator, current_account,
