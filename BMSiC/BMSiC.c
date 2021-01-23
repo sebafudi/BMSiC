@@ -358,6 +358,9 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
     if (current_input == number_of_elements) wattron(stdscr, A_REVERSE);
     mvprintw(number_of_elements, 2, "CONFIRM");
     wattroff(stdscr, A_REVERSE);
+    mvprintw(number_of_elements + 1, 2, "%s", "To change current input use arrows, ENTER, TAB or SHIFT+TAB");
+    mvprintw(number_of_elements + 2, 2, "%s",
+             "To exit press ESC");
     if (current_input < number_of_elements) {
       if (fields[current_input]) {
         mvprintw(current_input,
