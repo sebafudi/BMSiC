@@ -778,25 +778,34 @@ int DisplayTransferMoney(char* file_name, char data_separator,
         if (!FindByLogin(file_name, fields_text[0], temp_account)) {
           account_transfer_to = *temp_account;
           if (strcmp(current_account->login, account_transfer_to.login)) {
-            sum = FloatInputMenu(transfer_text, y_max, x_max);
-            if (sum >= 0) {
-              FindByLogin(file_name, current_account->login, current_account);
-              if (sum <= current_account->balance) {
-                current_account->balance -= sum;
-                account_transfer_to.balance += sum;
-                ModifyUserInFile(file_name, data_separator, current_account,
-                                 temp_account);
-                ModifyUserInFile(file_name, data_separator,
-                                 &account_transfer_to, temp_account);
-                clear();
-                printw("Transfer completed!");
-                getch();
-                choice = -1;
-              } else {
-                clear();
-                printw("Insufficient balance!");
-                getch();
+            if (strlen(fields_text[1]) == 0 ||
+                (strlen(fields_text[1]) > 0) &&
+                    !strcmp(fields_text[1],
+                            account_transfer_to.account_number)) {
+              sum = FloatInputMenu(transfer_text, y_max, x_max);
+              if (sum >= 0) {
+                FindByLogin(file_name, current_account->login, current_account);
+                if (sum <= current_account->balance) {
+                  current_account->balance -= sum;
+                  account_transfer_to.balance += sum;
+                  ModifyUserInFile(file_name, data_separator, current_account,
+                                   temp_account);
+                  ModifyUserInFile(file_name, data_separator,
+                                   &account_transfer_to, temp_account);
+                  clear();
+                  printw("Transfer completed!");
+                  getch();
+                  choice = -1;
+                } else {
+                  clear();
+                  printw("Insufficient balance!");
+                  getch();
+                }
               }
+            } else {
+              clear();
+              printw("Incorrect transfer recipient!");
+              getch();
             }
           } else {
             clear();
@@ -845,10 +854,10 @@ int DisplayTransferMoney(char* file_name, char data_separator,
         }
       }
     }
-    for (int i = 0;
-         i < sizeof(transfer_menu_text) / sizeof(transfer_menu_text[0]); i++) {
-      free(fields_text[i]);
-    }
+  }
+  for (int i = 0;
+       i < sizeof(transfer_menu_text) / sizeof(transfer_menu_text[0]); i++) {
+    free(fields_text[i]);
   }
   free(fields_text);
   return 0;
