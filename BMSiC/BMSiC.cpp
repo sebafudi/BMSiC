@@ -19,53 +19,55 @@ struct Account {
   long long int balance;
 };
 
-int DisplayMyAccount(struct Account* current_account, char** my_account_text,
-                     unsigned int size, int y_max, int x_max, char* file_name,
-                     char data_separator, struct Account* temp_account);
-int DisplayTransferMoney(char* file_name, char data_separator,
-                         struct Account* current_account,
-                         struct Account* temp_account, int y_max, int x_max);
-int DisplayUserBalance(struct Account* current_account, int y_max, int x_max);
-int FindByAccNo(char* file_name, char* acc_number,
-                struct Account* temp_account);
-int FindByLogin(char* file_name, char* login, struct Account* temp_account);
-long long int DisplayWithdrawMoney(int y_max, int x_max);
-long long int DisplayDepositMoney(int y_max, int x_max);
-int ModifyUserInFile(char* file_name, char data_separator,
+long long djb2_hash(char* str);
+int DisplayHorizontalMenu(const char** choices, unsigned int size, int y_max,
+                          int x_max);
+int DisplayVerticalMenu(const char** choices, unsigned int size, int y_max,
+                        int x_max);
+int InitializeFiles(const char* file_name);
+int TextInputMenu(const char** fields, int size, char** fields_text, int y_max,
+                  int x_max, bool already_set);
+long long int FloatInputMenu(const char* text, int y_max, int x_max);
+void SafelyClose();
+void GenerateAccountNumber(char* random_number, size_t size,
+                           const char* file_name, struct Account* temp_account);
+int CreateUser(struct Account* current_account, char** fields_text,
+               size_t count, int last_id, const char* file_name,
+               struct Account* temp_account);
+int SaveUser(const char* file_name, const char data_separator,
+             struct Account* current_account);
+int ParseUserFromLine(char* data, struct Account* temp_account);
+int FindLineContainingText(const char* file_name, char* text,
+                           char* current_line, unsigned int current_line_size,
+                           struct Account* temp_account, int field);
+int GetLastId(const char* file_name, const char data_separator);
+int ModifyUserInFile(const char* file_name, const char data_separator,
                      struct Account* account_to_modify,
                      struct Account* temp_account);
-int GetLastId(char* file_name, char data_separator);
-int FindLineContainingText(char* file_name, char* text, char* current_line,
-                           unsigned int current_line_size,
-                           struct Account* temp_account, int field);
-int ParseUserFromLine(char* data, struct Account* temp_account);
-int SaveUser(char* file_name, char data_separator,
-             struct Account* current_account);
-int CreateUser(struct Account* current_account, char** fields_text,
-               size_t count, int last_id, char* file_name,
-               struct Account* temp_account);
-void GenerateAccountNumber(char* random_number, size_t size, char* file_name,
-                           struct Account* temp_account);
-void SafelyClose();
-long long int FloatInputMenu(char* text, int y_max, int x_max);
-int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
-                  int x_max, bool already_set);
-int InitializeFiles(char* file_name);
-int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
-                        int x_max);
-int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
-                          int x_max);
-long long djb2_hash(unsigned char* str);
+long long int DisplayDepositMoney(int y_max, int x_max);
+long long int DisplayWithdrawMoney(int y_max, int x_max);
+int FindByLogin(const char* file_name, char* login,
+                struct Account* temp_account);
+int FindByAccNo(const char* file_name, char* acc_number,
+                struct Account* temp_account);
+int DisplayUserBalance(struct Account* current_account, int y_max, int x_max);
+int DisplayTransferMoney(const char* file_name, const char data_separator,
+                         struct Account* current_account,
+                         struct Account* temp_account, int y_max, int x_max);
+int DisplayMyAccount(struct Account* current_account,
+                     const char** my_account_text, unsigned int size, int y_max,
+                     int x_max, const char* file_name,
+                     const char data_separator, struct Account* temp_account);
 
 int main() {
-  char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
-  char* sign_in_text[] = {"Login", "Password", "First Name", "Last Name"};
-  char* log_in_text[] = {"Login", "Password"};
-  char* my_account_text[] = {"BALANCE",
+  const char* text[] = {"LOG IN", "SIGN IN", "EXIT"};
+  const char* sign_in_text[] = {"Login", "Password", "First Name", "Last Name"};
+  const char* log_in_text[] = {"Login", "Password"};
+  const char* my_account_text[] = {"BALANCE",
                              "TRANSFER MONEY (login or account number)",
                              "DEPOSIT", "WITHDRAW", "LOG OUT"};
   char** fields_text = NULL;
-  char data_separator = 149;
+  unsigned char data_separator = 149;
   struct Account current_account;
   struct Account temp_account;
   int y_max, x_max;
@@ -73,7 +75,7 @@ int main() {
   int choice = -1;
   char error_text[50];
   FILE* file;
-  char* file_name = "bmsic_db.txt";
+  const char* file_name = "bmsic_db.txt";
   errno_t err;
   bool flag = 0;
 
@@ -119,7 +121,7 @@ int main() {
     if (stage == 1) {
       if (choice == 0) {
         fields_text =
-            calloc(sizeof(log_in_text) / sizeof(log_in_text[0]), sizeof(char*));
+            (char**)calloc(sizeof(log_in_text) / sizeof(log_in_text[0]), sizeof(char*));
         assert(fields_text);
         while (choice != -1) {
           choice = TextInputMenu(log_in_text, sizeof(log_in_text), fields_text,
@@ -156,7 +158,7 @@ int main() {
       } else if (choice == 1) {
         flag = 0;
         choice = 0;
-        fields_text = calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]),
+        fields_text = (char**)calloc(sizeof(sign_in_text) / sizeof(sign_in_text[0]),
                              sizeof(char*));
         assert(fields_text);
         while (choice != -1) {
@@ -213,14 +215,14 @@ int main() {
   return 0;
 }
 
-long long djb2_hash(unsigned char* str) {
+long long djb2_hash(char* str) {
   unsigned long hash = 5381;
   int c;
   while (c = *str++) hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
   return hash;
 }
 
-int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
+int DisplayHorizontalMenu(const char** choices, unsigned int size, int y_max,
                           int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int total_text_size = 0;
@@ -272,7 +274,7 @@ int DisplayHorizontalMenu(char** choices, unsigned int size, int y_max,
   return -1;
 }
 
-int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
+int DisplayVerticalMenu(const char** choices, unsigned int size, int y_max,
                         int x_max) {
   int number_of_elements = size / sizeof(choices[0]);
   int padding = (y_max - number_of_elements * 2 - 1) / 2 + 1;
@@ -314,7 +316,7 @@ int DisplayVerticalMenu(char** choices, unsigned int size, int y_max,
   return -1;
 }
 
-int InitializeFiles(char* file_name) {
+int InitializeFiles(const char* file_name) {
   FILE* file;
   fopen_s(&file, file_name, "w");
   if (file != NULL) {
@@ -325,7 +327,7 @@ int InitializeFiles(char* file_name) {
   return -1;
 }
 
-int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
+int TextInputMenu(const char** fields, int size, char** fields_text, int y_max,
                   int x_max, bool already_set) {
   int current_input = 0;
   int key_pressed = 0;
@@ -334,7 +336,7 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
   curs_set(0);
   if (!already_set) {
     for (int i = 0; i < number_of_elements; i++) {
-      fields_text[i] = calloc(64, sizeof(char));
+      fields_text[i] = (char*)calloc(64, sizeof(char));
       assert(fields_text[i]);
     }
   }
@@ -404,7 +406,7 @@ int TextInputMenu(char** fields, int size, char** fields_text, int y_max,
   return -1;
 }
 
-long long int FloatInputMenu(char* text, int y_max, int x_max) {
+long long int FloatInputMenu(const char* text, int y_max, int x_max) {
   int key_pressed = 0;
   long long int number = 0;
   char input[16] = {'\0'};
@@ -459,7 +461,7 @@ void SafelyClose() {
   exit(0);
 }
 
-void GenerateAccountNumber(char* random_number, size_t size, char* file_name,
+void GenerateAccountNumber(char* random_number, size_t size, const char* file_name,
                            struct Account* temp_account) {
   do {
     for (size_t i = 0; i < size - 1; i++) {
@@ -470,7 +472,7 @@ void GenerateAccountNumber(char* random_number, size_t size, char* file_name,
 }
 
 int CreateUser(struct Account* current_account, char** fields_text,
-               size_t count, int last_id, char* file_name,
+               size_t count, int last_id, const char* file_name,
                struct Account* temp_account) {
   char random_number[27] = {'\0'};
   GenerateAccountNumber(random_number, sizeof(random_number), file_name,
@@ -492,7 +494,7 @@ int CreateUser(struct Account* current_account, char** fields_text,
   return 0;
 }
 
-int SaveUser(char* file_name, char data_separator,
+int SaveUser(const char* file_name, const char data_separator,
              struct Account* current_account) {
   FILE* file;
   fopen_s(&file, file_name, "a");
@@ -528,7 +530,7 @@ int ParseUserFromLine(char* data, struct Account* temp_account) {
   int i;
   int output_field_count;
   int output_char_idx;
-  char data_separator = 149;
+  unsigned char data_separator = 149;
 
   output_field_count = 0;
   output_char_idx = 0;
@@ -559,7 +561,7 @@ int ParseUserFromLine(char* data, struct Account* temp_account) {
   return 0;
 }
 
-int FindLineContainingText(char* file_name, char* text, char* current_line,
+int FindLineContainingText(const char* file_name, char* text, char* current_line,
                            unsigned int current_line_size,
                            struct Account* temp_account, int field) {
   FILE* file;
@@ -594,7 +596,7 @@ int FindLineContainingText(char* file_name, char* text, char* current_line,
   return -1;
 }
 
-int GetLastId(char* file_name, char data_separator) {
+int GetLastId(const char* file_name, const char data_separator) {
   FILE* file;
   long file_size;
   char current_character;
@@ -637,7 +639,7 @@ int GetLastId(char* file_name, char data_separator) {
   return -1;
 }
 
-int ModifyUserInFile(char* file_name, char data_separator,
+int ModifyUserInFile(const char* file_name, const char data_separator,
                      struct Account* account_to_modify,
                      struct Account* temp_account) {
   FILE* file;
@@ -648,7 +650,7 @@ int ModifyUserInFile(char* file_name, char data_separator,
                              sizeof(found_line), temp_account, 2);
   int linectr = 0;
   char str[512];
-  char* file_tmp_name = "bmsic_tmp_db.txt";
+  const char* file_tmp_name = "bmsic_tmp_db.txt";
 
   if (lno == -1) {
     return -1;
@@ -698,18 +700,18 @@ int ModifyUserInFile(char* file_name, char data_separator,
 }
 
 long long int DisplayDepositMoney(int y_max, int x_max) {
-  char* text = "Enter amount of money to deposit";
+  const char* text = "Enter amount of money to deposit";
   long long int sum = FloatInputMenu(text, y_max, x_max);
   return sum;
 }
 
 long long int DisplayWithdrawMoney(int y_max, int x_max) {
-  char* text = "Enter amount of money to withdraw";
+  const char* text = "Enter amount of money to withdraw";
   long long int sum = FloatInputMenu(text, y_max, x_max);
   return sum;
 }
 
-int FindByLogin(char* file_name, char* login, struct Account* temp_account) {
+int FindByLogin(const char* file_name, char* login, struct Account* temp_account) {
   char found_line[512] = {'\0'};
   int out = FindLineContainingText(file_name, login, found_line,
                                    sizeof(found_line), temp_account, 2);
@@ -719,7 +721,7 @@ int FindByLogin(char* file_name, char* login, struct Account* temp_account) {
   return -1;
 }
 
-int FindByAccNo(char* file_name, char* acc_number,
+int FindByAccNo(const char* file_name, char* acc_number,
                 struct Account* temp_account) {
   char found_line[512] = {'\0'};
   int out = FindLineContainingText(file_name, acc_number, found_line,
@@ -760,17 +762,17 @@ int DisplayUserBalance(struct Account* current_account, int y_max, int x_max) {
   return 0;
 }
 
-int DisplayTransferMoney(char* file_name, char data_separator,
+int DisplayTransferMoney(const char* file_name, const char data_separator,
                          struct Account* current_account,
                          struct Account* temp_account, int y_max, int x_max) {
-  char* transfer_menu_text[] = {"Login", "Account number"};
-  char* transfer_text = "Amount of money to transfer";
+  const char* transfer_menu_text[] = {"Login", "Account number"};
+  const char* transfer_text = "Amount of money to transfer";
   char** fields_text = NULL;
   int choice = 0;
   long long int sum = 0;
   struct Account account_transfer_to;
   fields_text =
-      calloc(sizeof(transfer_menu_text) / sizeof(transfer_menu_text[0]),
+      (char**)calloc(sizeof(transfer_menu_text) / sizeof(transfer_menu_text[0]),
              sizeof(char*));
   assert(fields_text);
   while (choice != -1) {
@@ -866,9 +868,9 @@ int DisplayTransferMoney(char* file_name, char data_separator,
   return 0;
 }
 
-int DisplayMyAccount(struct Account* current_account, char** my_account_text,
-                     unsigned int size, int y_max, int x_max, char* file_name,
-                     char data_separator, struct Account* temp_account) {
+int DisplayMyAccount(struct Account* current_account, const char** my_account_text,
+                     unsigned int size, int y_max, int x_max, const char* file_name,
+                     const char data_separator, struct Account* temp_account) {
   int choice;
   long long int sum;
   choice = DisplayVerticalMenu(my_account_text, size, y_max, x_max);

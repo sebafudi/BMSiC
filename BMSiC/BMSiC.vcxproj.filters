@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BMSiC.c">
+    <ClCompile Include="BMSiC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
